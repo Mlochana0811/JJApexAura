@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% block content %}
+<h1>Requests to HR</h1><p class="sub">Ask for letters, salary advances or changes to your details.</p>
+<div class="grid g2">
+  <div class="card"><h2>New request</h2><form method="post">{% csrf_token %}{% for f in form %}<p>{{ f.label_tag }}{{ f }}{{ f.errors }}</p>{% endfor %}<button class="btn">Send</button></form></div>
+  <div class="card"><h2>My requests</h2>
+    {% for r in requests %}<div style="border-bottom:1px solid var(--line);padding:8px 0"><b>{{ r.subject }}</b> <span class="chip {% if r.status == 'done' %}ok{% elif r.status == 'declined' %}bad{% endif %}">{{ r.get_status_display }}</span><br>
+      <span class="muted small">{{ r.get_category_display }} · {{ r.created_at|date:"j M Y" }}</span>{% if r.response %}<p class="small" style="margin:4px 0 0">HR: {{ r.response }}</p>{% endif %}</div>
+    {% empty %}<p class="muted small">No requests yet.</p>{% endfor %}</div>
+</div>
+{% endblock %}

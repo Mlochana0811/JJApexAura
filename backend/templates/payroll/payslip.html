@@ -1,0 +1,37 @@
+{% extends "base.html" %}{% block title %}Payslip {{ p.label }} – {{ e.full_name }}{% endblock %}{% block content %}
+<p class="noprint"><button class="btn ghost" onclick="window.print()">Print / save as PDF</button></p>
+<div class="card" style="max-width:760px">
+  <div class="actions" style="justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--accent);padding-bottom:10px;margin-bottom:12px">
+    <div>{% if c.logo %}<img src="{{ c.logo.url }}" alt="" style="max-height:48px;max-width:180px;margin-bottom:6px;display:block">{% endif %}<h1>{{ c.name }}</h1><div class="muted small">{{ c.address|linebreaksbr }}</div></div>
+    <div style="text-align:right"><b>PAYSLIP</b><br>{{ p.label }}</div>
+  </div>
+  <dl class="kv" style="margin-bottom:14px">
+    <dt>Employee</dt><dd>{{ e.full_name }} ({{ e.emp_no }})</dd><dt>Designation</dt><dd>{{ e.designation|default:"—" }}</dd>
+    <dt>NIC</dt><dd>{{ e.nic|default:"—" }}</dd><dt>EPF no.</dt><dd>{{ e.epf_no|default:"—" }}</dd>
+    <dt>Bank</dt><dd>{{ e.bank_name }} {% if e.bank_account %}– ****{{ e.bank_account|slice:"-4:" }}{% endif %}</dd>
+  </dl>
+  <div class="grid g2">
+    <table><tr><th>Earnings</th><th class="r">Rs.</th></tr>
+      <tr><td>Basic salary</td><td class="r">{{ s.basic_salary|floatformat:"2g" }}</td></tr>
+      {% if s.epf_allowance %}<tr><td>Allowances (EPF)</td><td class="r">{{ s.epf_allowance|floatformat:"2g" }}</td></tr>{% endif %}
+      {% if s.epf_earnings %}<tr><td>Commission / other (EPF)</td><td class="r">{{ s.epf_earnings|floatformat:"2g" }}</td></tr>{% endif %}
+      {% if s.fixed_allowance %}<tr><td>Other allowances</td><td class="r">{{ s.fixed_allowance|floatformat:"2g" }}</td></tr>{% endif %}
+      {% if s.ot_amount %}<tr><td>Overtime</td><td class="r">{{ s.ot_amount|floatformat:"2g" }}</td></tr>{% endif %}
+      {% if s.bonus %}<tr><td>Bonus</td><td class="r">{{ s.bonus|floatformat:"2g" }}</td></tr>{% endif %}
+      {% if s.other_earnings %}<tr><td>Other earnings</td><td class="r">{{ s.other_earnings|floatformat:"2g" }}</td></tr>{% endif %}
+      {% if s.no_pay_deduction %}<tr><td>Less: no-pay</td><td class="r">({{ s.no_pay_deduction|floatformat:"2g" }})</td></tr>{% endif %}
+      <tfoot><tr><td>Gross salary</td><td class="r">{{ s.gross_salary|floatformat:"2g" }}</td></tr></tfoot></table>
+    <table><tr><th>Deductions</th><th class="r">Rs.</th></tr>
+      <tr><td>EPF 8%</td><td class="r">{{ s.epf_employee|floatformat:"2g" }}</td></tr>
+      {% if s.apit %}<tr><td>APIT</td><td class="r">{{ s.apit|floatformat:"2g" }}</td></tr>{% endif %}
+      {% if s.salary_advance %}<tr><td>Salary advance</td><td class="r">{{ s.salary_advance|floatformat:"2g" }}</td></tr>{% endif %}
+      {% if s.welfare %}<tr><td>Welfare</td><td class="r">{{ s.welfare|floatformat:"2g" }}</td></tr>{% endif %}
+      {% if s.loan_recovery %}<tr><td>Loan recovery</td><td class="r">{{ s.loan_recovery|floatformat:"2g" }}</td></tr>{% endif %}
+      {% if s.other_deductions %}<tr><td>Other deductions</td><td class="r">{{ s.other_deductions|floatformat:"2g" }}</td></tr>{% endif %}
+      <tfoot><tr><td>Total deductions</td><td class="r">{{ s.total_deductions|floatformat:"2g" }}</td></tr></tfoot></table>
+  </div>
+  <div style="margin-top:16px;padding:12px;background:var(--brand-soft);color:var(--brand);border-radius:8px;display:flex;justify-content:space-between"><b>NET SALARY</b><b>Rs. {{ s.net_salary|floatformat:"2g" }}</b></div>
+  <p class="small muted" style="margin-top:12px">Employer contributions: EPF 12% Rs. {{ s.epf_employer|floatformat:"2g" }} · ETF 3% Rs. {{ s.etf_employer|floatformat:"2g" }} (on EPF earnings Rs. {{ s.epf_base|floatformat:"2g" }})</p>
+  <p class="small muted">Prepared by Jay's HR · PD Accounting Services (Pvt) Ltd. This is a computer-generated payslip.</p>
+</div>
+{% endblock %}

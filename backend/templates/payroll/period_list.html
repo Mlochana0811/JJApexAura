@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% block content %}
+<h1>Payroll – {{ company.name }}</h1><p class="sub">Each month: client enters inputs → Jay's HR processes → client approves → payslips released.</p>
+<form method="post" class="card actions" style="margin-bottom:16px">{% csrf_token %}
+  <b>Start or open month:</b>
+  <select name="month" style="width:auto">{% for m in months %}<option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m }}</option>{% endfor %}</select>
+  <input name="year" value="{{ year }}" style="width:90px">
+  <label style="display:inline-flex;gap:6px;align-items:center;font-weight:400;margin:0"><input type="checkbox" name="carry_forward" checked> Copy last month's recurring welfare deduction</label>
+  <button class="btn">Open</button>
+</form>
+<form method="get" action="{% url 'etf_half_year' company.id %}" class="card actions" style="margin-bottom:16px">
+  <b>ETF half-yearly return (Form II):</b>
+  <select name="half" style="width:auto"><option value="1">January – June</option><option value="2">July – December</option></select>
+  <input name="year" value="{{ year }}" style="width:90px"><button class="btn ghost">Download Excel</button>
+  <span class="muted small">Jan–Jun is due by 31 August; Jul–Dec by 28 February.</span>
+</form>
+<div class="card"><table><tr><th>Month</th><th>Status</th><th class="r">Payslips</th><th></th></tr>
+{% for p in periods %}<tr><td>{{ p.label }}</td><td><span class="chip {% if p.status == 'locked' or p.status == 'approved' %}ok{% endif %}">{{ p.get_status_display }}</span></td><td class="r">{{ p.payslips.count }}</td><td><a class="btn sm ghost" href="{% url 'period_detail' p.pk %}">Open</a></td></tr>
+{% empty %}<tr><td colspan="4" class="muted">No payroll months yet.</td></tr>{% endfor %}</table></div>
+{% endblock %}

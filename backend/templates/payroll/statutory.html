@@ -1,0 +1,49 @@
+{% extends "base.html" %}{% block content %}
+<p class="small"><a href="{% url 'period_detail' p.pk %}">← {{ p.company.name }} – {{ p.label }}</a></p>
+<h1>EPF &amp; ETF – {{ p.label }}</h1>
+<p class="sub">Files for the EPF Department and the ETF Board, made from this month's processed payroll. EPF/ETF are on total earnings (basic + EPF-able allowances and earnings).</p>
+
+{% if issues %}<div class="card" style="margin-bottom:16px;border-color:#e7c9a0;background:var(--warn-soft)">
+  <h2 style="color:var(--warn)">Fix before submitting</h2>
+  <ul class="small" style="margin:0;padding-left:18px">{% for i in issues %}<li>{{ i }}</li>{% endfor %}</ul>
+  <p class="small muted" style="margin:8px 0 0">You can still download the files to check them.</p>
+</div>{% endif %}
+
+<div class="grid g4" style="margin-bottom:16px">
+  <div class="card stat"><div class="n">{{ members|length }}</div><div class="l">EPF members</div></div>
+  <div class="card stat"><div class="n">{{ tot.earnings|floatformat:"0g" }}</div><div class="l">Total earnings (Rs.)</div></div>
+  <div class="card stat"><div class="n">{{ tot.total|floatformat:"2g" }}</div><div class="l">EPF payable – 8% + 12% (Rs.)</div></div>
+  <div class="card stat"><div class="n">{{ tot.etf|floatformat:"2g" }}</div><div class="l">ETF payable – 3% (Rs.)</div></div>
+</div>
+
+<form method="get" class="card" style="margin-bottom:16px" id="payform">
+  <h2>EPF payment details <span class="muted small" style="font-weight:400">(go into the Payment Summary file and Form C)</span></h2>
+  <div class="form-grid">
+    <p><label>Payment method</label><select name="pay_mode">{% for k, v in pay_modes %}<option value="{{ k }}" {% if k == "4" %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></p>
+    <p><label>Payment reference</label><input name="pay_ref" maxlength="20" placeholder="Cheque no. or bank/branch/account"></p>
+    <p><label>Payment date</label><input type="date" name="pay_date" value="{{ today|date:'Y-m-d' }}"></p>
+    <p><label>Submission no.</label><input name="submission" value="1" maxlength="2"><span class="muted small">Use 2, 3… if you send separate files for the same employer number</span></p>
+  </div>
+  <div class="grid g2" style="margin-top:8px">
+    <div><h2>EPF</h2><div class="actions">
+      <button class="btn" formaction="{% url 'period_statutory_file' p.pk 'epf-return' %}">EPF e-Return files (EVEMC + EVEMP)</button>
+      <button class="btn ghost" formaction="{% url 'period_statutory_file' p.pk 'epf-excel' %}">Contribution detail – Excel</button>
+      <button class="btn ghost" formaction="{% url 'period_statutory_file' p.pk 'form-c' %}">Form C details – PDF</button>
+    </div></div>
+    <div><h2>ETF</h2><div class="actions">
+      <button class="btn ghost" formaction="{% url 'period_statutory_file' p.pk 'etf-pdf' %}">ETF schedule – PDF</button>
+      <button class="btn ghost" formaction="{% url 'period_statutory_file' p.pk 'etf-excel' %}">ETF schedule – Excel</button>
+    </div></div>
+  </div>
+</form>
+
+<div class="card scroll"><h2>Members this month</h2><table>
+  <tr><th>Member no.</th><th>Name (as for EPF)</th><th>NIC</th><th>Status</th><th class="r">Total earnings</th><th class="r">Member 8%</th><th class="r">Employer 12%</th><th class="r">Total EPF</th><th class="r">ETF 3%</th></tr>
+  {% for m in members %}<tr><td>{{ m.member_no|default:"—" }}</td><td>{{ m.name }}</td><td>{{ m.nic|default:"—" }}</td>
+    <td><span class="chip">{% if m.status == 'N' %}New{% elif m.status == 'V' %}Left{% else %}Existing{% endif %}</span></td>
+    <td class="r">{{ m.earnings|floatformat:"2g" }}</td><td class="r">{{ m.employee|floatformat:"2g" }}</td><td class="r">{{ m.employer|floatformat:"2g" }}</td><td class="r">{{ m.total|floatformat:"2g" }}</td><td class="r">{{ m.etf|floatformat:"2g" }}</td></tr>
+  {% empty %}<tr><td colspan="9" class="muted">No EPF members – process the payroll first.</td></tr>{% endfor %}
+  {% if members %}<tfoot><tr><td></td><td>Total</td><td></td><td></td><td class="r">{{ tot.earnings|floatformat:"2g" }}</td><td class="r">{{ tot.employee|floatformat:"2g" }}</td><td class="r">{{ tot.employer|floatformat:"2g" }}</td><td class="r">{{ tot.total|floatformat:"2g" }}</td><td class="r">{{ tot.etf|floatformat:"2g" }}</td></tr></tfoot>{% endif %}
+</table></div>
+<p class="muted small" style="margin-top:12px">EPF and ETF are due by the last working day of the following month. The EPF Department checks a new employer's first e-Return files before live submission. Employers with 15+ staff must pay ETF online and file electronically (R1); smaller employers use R4.</p>
+{% endblock %}

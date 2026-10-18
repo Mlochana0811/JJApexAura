@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% block content %}
+<h1>My leave</h1><p class="sub">Check what you have left and apply. Weekends are not counted.</p>
+<div class="grid g2">
+  <div class="card"><h2>Balance {% now "Y" %}</h2><table><tr><th>Type</th><th class="r">Entitled</th><th class="r">Used</th><th class="r">Pending</th><th class="r">Left</th></tr>
+    {% for b in balances %}<tr><td>{{ b.type.name }}</td><td class="r">{{ b.entitled|default_if_none:"—"|floatformat:"-1" }}</td><td class="r">{{ b.used|floatformat:"-1" }}</td><td class="r">{{ b.pending|floatformat:"-1" }}</td><td class="r"><b>{{ b.remaining|default_if_none:"—"|floatformat:"-1" }}</b></td></tr>{% endfor %}</table></div>
+  <div class="card"><h2>Apply for leave</h2>
+    <form method="post">{% csrf_token %}{{ form.non_field_errors }}
+      <div class="form-grid">{% for f in form %}<p>{{ f.label_tag }}{{ f }}{{ f.errors }}</p>{% endfor %}</div>
+      <button class="btn">Send to HR</button></form></div>
+</div>
+<div class="card" style="margin-top:16px"><h2>My applications</h2><div class="scroll"><table>
+  <tr><th>Type</th><th>From</th><th>To</th><th class="r">Days</th><th>Status</th><th>HR comment</th><th></th></tr>
+  {% for l in leaves %}<tr><td>{{ l.leave_type }}</td><td>{{ l.start_date }}</td><td>{{ l.end_date }}</td><td class="r">{{ l.days|floatformat:"-1" }}</td>
+    <td><span class="chip {% if l.status == 'approved' %}ok{% elif l.status == 'rejected' %}bad{% endif %}">{{ l.get_status_display }}</span></td><td>{{ l.hr_comment }}</td>
+    <td>{% if l.status == 'pending' %}<form method="post" action="{% url 'cancel_leave' l.pk %}">{% csrf_token %}<button class="btn sm ghost">Cancel</button></form>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="7" class="muted">No applications yet.</td></tr>{% endfor %}
+</table></div></div>
+{% endblock %}

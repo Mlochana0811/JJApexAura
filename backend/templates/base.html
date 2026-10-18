@@ -1,0 +1,41 @@
+{% load static %}<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Jay's HR{% endblock %}</title>
+<link rel="stylesheet" href="{% static 'app.css' %}">
+<style>:root{--brand:{{ theme.brand }};--brand-ink:{{ theme.brand_ink }};--brand-soft:{{ theme.brand_soft }};--brand-line:{{ theme.brand_line }};--accent:{{ theme.accent }};--accent-soft:{{ theme.accent_soft }};--page-tint:{{ theme.page_tint }}}</style></head>
+<body class="style-{{ theme.style }}">
+{% if user.is_authenticated %}
+<header><div class="wrap">
+  <a class="logo" href="{% url 'dashboard' %}">
+    {% if brand_company.logo %}<img src="{{ brand_company.logo.url }}" alt="{{ brand_company.name }}">
+    {% else %}<span class="mark">{% if brand_company %}{{ brand_company.name|slice:":1" }}{% else %}J{% endif %}</span>{% endif %}
+    <span>{% if brand_company %}{{ brand_company.name }}<small>Payroll by Jay's HR</small>{% else %}Jay's HR<small>PD Accounting Services</small>{% endif %}</span>
+  </a>
+  {% with p=request.resolver_match.url_name %}
+  <nav>
+    <a href="{% url 'dashboard' %}" class="{% if p == 'dashboard' %}on{% endif %}">Home</a>
+    {% if user.is_employee %}
+      <a href="{% url 'my_leave' %}" class="{% if p == 'my_leave' %}on{% endif %}">My leave</a>
+      <a href="{% url 'my_requests' %}" class="{% if p == 'my_requests' %}on{% endif %}">Requests to HR</a>
+      <a href="{% url 'my_payslips' %}" class="{% if p == 'my_payslips' %}on{% endif %}">Payslips</a>
+    {% else %}
+      <a href="{% url 'employee_list' %}" class="{% if 'employee' in p %}on{% endif %}">Employees</a>
+      {% if user.is_hr_admin %}<a href="{% url 'company_list' %}" class="{% if p == 'company_list' or 'period' in p %}on{% endif %}">Payroll</a>
+      {% else %}<a href="{% url 'period_list' user.company_id %}" class="{% if 'period' in p %}on{% endif %}">Payroll</a>{% endif %}
+      <a href="{% url 'leave_approvals' %}" class="{% if p == 'leave_approvals' %}on{% endif %}">Leave approvals</a>
+      <a href="{% url 'hr_requests' %}" class="{% if p == 'hr_requests' %}on{% endif %}">HR requests</a>
+      <a href="{% url 'branding' %}" class="{% if p == 'branding' %}on{% endif %}">Branding</a>
+      {% if user.is_hr_admin %}<a href="/admin/">Settings</a>{% endif %}
+    {% endif %}
+  </nav>
+  {% endwith %}
+  <div class="who">{{ user.get_full_name|default:user.username }} · {{ user.get_role_display }}{% if user.company %} · {{ user.company.code }}{% endif %}
+    · <a href="{% url 'password_change' %}">Password</a>
+    · <form method="post" action="{% url 'logout' %}" style="display:inline">{% csrf_token %}<button>Log out</button></form></div>
+</div></header>
+{% endif %}
+<main><div class="wrap">
+{% if messages %}<ul class="messages">{% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>{% endif %}
+{% block content %}{% endblock %}
+</div></main>
+</body></html>

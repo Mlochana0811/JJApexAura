@@ -1,0 +1,27 @@
+export const resources={
+ employees:{title:'People',description:'Employee records, reporting lines and employment details.',columns:['full_name','emp_no','company_label','department','designation','status'],create:'Add employee',edit:true},
+ companies:{title:'Companies',description:'Keep each business and its payroll rules in one place.',columns:['name','code','email','payday','is_active'],create:'Add company',edit:true},
+ attendance:{title:'Attendance',description:'Actual work sessions, breaks and approved corrections.',columns:['employee_label','date','check_in','check_out','worked_hours','late_minutes']},
+ corrections:{title:'Attendance corrections',description:'Request a missing punch or correct a recorded session.',columns:['employee_label','requested_in','requested_out','reason','status'],create:'Request correction'},
+ shifts:{title:'Shifts',description:'Define working hours, grace periods and overnight schedules.',columns:['name','company_label','start_time','end_time','expected_hours'],create:'Add shift',edit:true},
+ rosters:{title:'Roster',description:'Assign an employee to a shift for a specific day.',columns:['employee_label','shift_label','date'],create:'Assign shift',edit:true},
+ holidays:{title:'Holidays',description:'Company calendars used when calculating leave.',columns:['name','date','company_label'],create:'Add holiday',edit:true},
+ leave:{title:'Leave',description:'Balances and requests, with approval history.',columns:['employee_label','leave_type_label','start_date','end_date','days','status'],create:'Apply for leave'},
+ 'leave-types':{title:'Leave policies',description:'Set company leave types and annual limits.',columns:['name','company_label','days_per_year','is_paid','has_limit'],create:'Add leave type',edit:true},
+ entitlements:{title:'Leave entitlements',description:'Employee and year-specific leave allocations.',columns:['employee_label','leave_type_label','year','days'],create:'Set entitlement',edit:true},
+ requests:{title:'HR conversations',description:'Requests, updates and replies between employees and HR.',columns:['subject','employee_label','category','status','updated_at'],create:'New request'},
+ announcements:{title:'Announcements',description:'Company news with read acknowledgements.',columns:['title','company_label','created_at','acknowledgements'],create:'Post announcement',edit:true},
+ documents:{title:'Documents',description:'Private employee files and expiry dates.',columns:['title','employee_label','kind','expires_on','created_at'],create:'Upload document'},
+ loans:{title:'Loans & advances',description:'Approved repayment schedules, balances and monthly recovery.',columns:['employee_label','kind','principal','installment','balance','status'],create:'Request loan'},
+ assets:{title:'Assets',description:'Equipment assignments, condition and returns.',columns:['name','serial_number','employee_label','issued_on','returned_on','condition'],create:'Add asset',edit:true},
+ checklists:{title:'Onboarding & exits',description:'Track induction, handover and offboarding tasks.',columns:['employee_label','category','title','due_date','completed'],create:'Add task',edit:true},
+ policies:{title:'Payroll policies',description:'Dated contribution and tax rules. Reviewed policies are required before processing.',columns:['name','company_label','effective_date','reviewed','source_note'],create:'Add policy version'},
+ payroll:{title:'Payroll',description:'Prepare, review and approve each monthly payroll.',columns:['company_label','year','month','status','payment_status','revision'],create:'Open month'},
+ inputs:{title:'Monthly inputs',description:'Reopen payroll before editing. Approved figures are preserved until explicitly superseded.',columns:['employee_label','no_pay_days','ot_hours','bonus','salary_advance','loan_recovery'],edit:true},
+ payslips:{title:'Payslips',description:'Approved salary statements and payment details.',columns:['employee_label','period_label','gross_salary','total_deductions','net_salary','emailed_at']},
+ salaries:{title:'Salary changes',description:'Effective-dated salary records. Use payroll adjustments for already-approved periods.',columns:['employee_label','effective_date','basic_salary','epf_allowance','fixed_allowance','reason'],create:'Record salary change'},
+ audit:{title:'Audit trail',description:'Who changed what, and when. History is read-only.',columns:['created_at','actor_label','action','entity','object_id']},
+ notifications:{title:'Notifications',description:'Updates that need your attention.',columns:['text','created_at','read']},
+};
+export const hrOnly=new Set(['companies','shifts','holidays','leave-types','entitlements','rosters','assets','checklists','policies','payroll','inputs','salaries']);
+export const moneyFields=new Set(['principal','installment','balance','basic_salary','epf_allowance','fixed_allowance','gross_salary','net_salary','total_deductions','bonus','salary_advance','loan_recovery','amount','epf_employee','epf_employer','etf_employer','apit','employer_cost']);

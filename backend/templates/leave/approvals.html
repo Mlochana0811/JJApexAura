@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% block content %}
+<h1>Leave approvals</h1><p class="sub">Approve or reject leave applied for by employees.</p>
+<div class="card scroll"><table>
+  <tr><th>Employee</th>{% if user.is_hr_admin %}<th>Co.</th>{% endif %}<th>Type</th><th>Dates</th><th class="r">Days</th><th>Reason</th><th>Decision</th></tr>
+  {% for l in pending %}<tr><td>{{ l.employee.full_name }}</td>{% if user.is_hr_admin %}<td>{{ l.employee.company.code }}</td>{% endif %}<td>{{ l.leave_type }}</td>
+    <td>{{ l.start_date|date:"j M" }}{% if l.end_date != l.start_date %} – {{ l.end_date|date:"j M" }}{% endif %}{% if l.half_day %} (half){% endif %}</td><td class="r">{{ l.days|floatformat:"-1" }}</td><td>{{ l.reason }}</td>
+    <td><form method="post" class="actions">{% csrf_token %}<input type="hidden" name="id" value="{{ l.id }}"><input name="comment" placeholder="Comment (optional)" style="width:160px">
+      <button class="btn sm" name="action" value="approve">Approve</button><button class="btn sm bad" name="action" value="reject">Reject</button></form></td></tr>
+  {% empty %}<tr><td colspan="7" class="muted">No leave waiting for approval.</td></tr>{% endfor %}
+</table></div>
+<div class="card scroll" style="margin-top:16px"><h2>Recently decided</h2><table>
+  <tr><th>Employee</th><th>Type</th><th>From</th><th class="r">Days</th><th>Status</th></tr>
+  {% for l in recent %}<tr><td>{{ l.employee.full_name }}</td><td>{{ l.leave_type }}</td><td>{{ l.start_date }}</td><td class="r">{{ l.days|floatformat:"-1" }}</td><td><span class="chip {% if l.status == 'approved' %}ok{% elif l.status == 'rejected' %}bad{% endif %}">{{ l.get_status_display }}</span></td></tr>
+  {% empty %}<tr><td colspan="5" class="muted">None yet.</td></tr>{% endfor %}</table></div>
+{% endblock %}

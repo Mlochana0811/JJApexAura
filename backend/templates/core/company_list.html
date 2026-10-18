@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block content %}
+<h1>Payroll – client companies</h1><p class="sub">Add or edit companies under Settings.</p>
+<div class="card"><table><tr><th>Company</th><th>Code</th><th>EPF reg. no.</th><th></th></tr>
+{% for c in companies %}<tr><td>{{ c.name }}</td><td>{{ c.code }}</td><td>{{ c.epf_reg_no|default:"—" }}</td><td><a class="btn sm" href="{% url 'period_list' c.id %}">Payroll months</a></td></tr>{% endfor %}
+</table></div>
+{% endblock %}

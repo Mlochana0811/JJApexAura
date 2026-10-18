@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% block content %}
+<div class="actions" style="justify-content:space-between"><div><h1>{{ emp.full_name }}</h1><p class="sub">{{ emp.emp_no }} · {{ emp.designation }} · {{ emp.company.name }} · <span class="chip">{{ emp.get_status_display }}</span></p></div>
+{% if not user.is_employee %}<a class="btn" href="{% url 'employee_edit' emp.pk %}">Edit</a>{% endif %}</div>
+{% with m=emp.missing_fields %}{% if m %}<ul class="messages"><li class="info">Missing details: {{ m|join:", " }}</li></ul>{% endif %}{% endwith %}
+<div class="grid g2">
+  <div class="card"><h2>Personal</h2><dl class="kv">
+    <dt>NIC</dt><dd>{{ emp.nic|default:"—" }}</dd><dt>Date of birth</dt><dd>{{ emp.date_of_birth|default:"—" }}</dd>
+    <dt>Address</dt><dd>{{ emp.address|default:"—" }}</dd><dt>Phone</dt><dd>{{ emp.phone|default:"—" }}</dd><dt>Email</dt><dd>{{ emp.email|default:"—" }}</dd>
+    <dt>Joined</dt><dd>{{ emp.join_date|default:"—" }}</dd>{% if emp.leave_date %}<dt>Left</dt><dd>{{ emp.leave_date }}</dd>{% endif %}
+  </dl></div>
+  <div class="card"><h2>Pay &amp; bank</h2><dl class="kv">
+    <dt>Basic salary</dt><dd>Rs. {{ emp.basic_salary|floatformat:"2g" }}</dd><dt>EPF-able allowances</dt><dd>Rs. {{ emp.epf_allowance|floatformat:"2g" }}</dd><dt>Other allowances</dt><dd>Rs. {{ emp.fixed_allowance|floatformat:"2g" }}</dd>
+    <dt>EPF / ETF</dt><dd>{% if emp.epf_eligible %}Yes – on Rs. {{ emp.basic_salary|add:emp.epf_allowance|floatformat:"2g" }} a month (EPF no. {{ emp.epf_no|default:"—" }}){% else %}Not registered{% endif %}</dd>
+    <dt>Bank</dt><dd>{{ emp.bank_name|default:"—" }} {{ emp.bank_branch }}</dd><dt>Account</dt><dd>{{ emp.bank_account|default:"—" }}</dd>
+  </dl></div>
+  <div class="card"><h2>Leave {% now "Y" %}</h2><table><tr><th>Type</th><th class="r">Entitled</th><th class="r">Used</th><th class="r">Pending</th><th class="r">Left</th></tr>
+    {% for b in balances %}<tr><td>{{ b.type.name }}</td><td class="r">{{ b.entitled|default_if_none:"—"|floatformat:"-1" }}</td><td class="r">{{ b.used|floatformat:"-1" }}</td><td class="r">{{ b.pending|floatformat:"-1" }}</td><td class="r">{{ b.remaining|default_if_none:"—"|floatformat:"-1" }}</td></tr>{% endfor %}</table></div>
+  <div class="card"><h2>Salary history</h2><table><tr><th>From</th><th class="r">Basic</th><th class="r">EPF allow.</th><th class="r">Other allow.</th><th>Reason</th></tr>
+    {% for h in history %}<tr><td>{{ h.effective_date }}</td><td class="r">{{ h.basic_salary|floatformat:"2g" }}</td><td class="r">{{ h.epf_allowance|floatformat:"2g" }}</td><td class="r">{{ h.fixed_allowance|floatformat:"2g" }}</td><td>{{ h.reason }}</td></tr>{% empty %}<tr><td colspan="5" class="muted">No history.</td></tr>{% endfor %}</table></div>
+</div>
+{% endblock %}

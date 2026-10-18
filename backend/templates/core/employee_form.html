@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% block content %}
+<h1>{% if emp %}Edit {{ emp.full_name }}{% else %}Add employee{% endif %}</h1>
+<p class="sub">EPF (8% + 12%) and ETF (3%) are calculated on <b>basic salary + EPF-able allowances</b> (cost of living, special living, food allowance). Put travel reimbursements, incentives and other allowances that don't count for EPF under "Other fixed allowances".</p>
+<form method="post" class="card">{% csrf_token %}
+  {{ form.non_field_errors }}
+  <div class="form-grid">{% for f in form %}<p>{{ f.label_tag }}{{ f }}{{ f.errors }}{% if f.help_text %}<span class="muted small">{{ f.help_text }}</span>{% endif %}</p>{% endfor %}</div>
+  <button class="btn">Save</button> <a class="btn ghost" href="{% if emp %}{% url 'employee_detail' emp.pk %}{% else %}{% url 'employee_list' %}{% endif %}">Cancel</a>
+</form>
+{% endblock %}

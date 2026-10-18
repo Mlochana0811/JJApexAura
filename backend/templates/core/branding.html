@@ -1,0 +1,96 @@
+{% extends "base.html" %}{% block content %}
+{% if site_mode %}
+<h1>Jay's HR default look</h1>
+<p class="sub">Used for your own screens, the sign-in page and any client that hasn't chosen its own colours.</p>
+{% else %}
+<h1>Branding – {{ company.name }}</h1>
+<p class="sub">Pick a ready-made colour set, take colours from your logo, or choose your own. Staff see the portal and payslips in this look.</p>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+{{ form.non_field_errors }}
+<div class="grid g2" style="align-items:start">
+<div class="grid" style="gap:16px">
+
+  {% if not site_mode %}
+  <div class="card"><h2>Logo</h2>
+    {% if company.logo %}<p><img src="{{ company.logo.url }}" alt="" style="max-height:64px;max-width:220px"></p>
+      <p><label style="display:inline-flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" name="remove_logo"> Remove logo</label></p>{% endif %}
+    <p>{{ form.logo }}{{ form.logo.errors }}<span class="muted small">PNG or JPG, under 2 MB. Colours are picked from it automatically.</span></p>
+    {% if palette %}<p class="small muted" style="margin:10px 0 6px">From your logo – click for main colour, shift-click for second:</p>
+      <div class="swatches" style="margin-bottom:18px">{% for c in palette %}<button type="button" class="swatch logo-sw" style="background:{{ c }}" data-c="{{ c }}" title="{{ c }}"><span>{{ c }}</span></button>{% endfor %}</div>{% endif %}
+  </div>
+  {% endif %}
+
+  <div class="card"><h2>Colour sets</h2>
+    <div class="presets">
+      {% for key, name, main, second in presets %}
+      <button type="button" class="preset" data-main="{{ main }}" data-second="{{ second }}">
+        <span class="pair"><i style="background:{{ main }}"></i><i style="background:{{ second }}"></i></span>{{ name }}</button>
+      {% endfor %}
+    </div>
+    <div class="actions" style="gap:24px;margin-top:16px">
+      <p>{{ form.brand_color.label_tag }}{{ form.brand_color }}{{ form.brand_color.errors }}</p>
+      <p>{{ form.accent_color.label_tag }}{{ form.accent_color }}{{ form.accent_color.errors }}</p>
+    </div>
+    {% if not site_mode %}<p><label style="display:inline-flex;gap:8px;align-items:center">{{ form.use_own_theme }} {{ form.use_own_theme.label }}</label></p>{% endif %}
+  </div>
+
+  <div class="card"><h2>Page design</h2>
+    <div class="styles">
+      {% for key, name, desc in styles %}
+      <label class="style-opt">
+        <input type="radio" name="style" value="{{ key }}" {% if form.style.value == key %}checked{% endif %}>
+        <span class="mini mini-{{ key }}"><b></b><em></em><em></em></span>
+        <span><strong>{{ name }}</strong><br><span class="muted small">{{ desc }}</span></span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <p><button class="btn">Save look</button></p>
+</div>
+
+<div class="card" style="position:sticky;top:16px"><h2>Preview</h2>
+  <div class="preview style-{{ preview.style }}" id="preview"
+       style="--brand:{{ preview.brand }};--brand-ink:{{ preview.brand_ink }};--brand-soft:{{ preview.brand_soft }};--brand-line:{{ preview.brand_line }};--accent:{{ preview.accent }};--page-tint:{{ preview.page_tint }}">
+    <div class="bar">
+      {% if company.logo %}<img src="{{ company.logo.url }}" alt="" style="height:26px">{% else %}<span class="mark">{% if company %}{{ company.name|slice:":1" }}{% else %}J{% endif %}</span>{% endif %}
+      <b>{% if company %}{{ company.name }}{% else %}Jay's HR{% endif %}</b>
+      <span class="pnav"><span class="on">Home</span><span>My leave</span><span>Payslips</span></span>
+    </div>
+    <div class="pbody">
+      <div class="pcard">
+        <span class="chip">Approved</span>
+        <p class="pnum">Rs. 57,100.00</p>
+        <p class="small muted" style="margin:0 0 12px">Net salary – September 2026</p>
+        <span class="btn">Apply for leave</span> <span class="btn ghost">Ask HR</span>
+      </div>
+    </div>
+  </div>
+  <p class="muted small" style="margin-top:10px">The preview changes as you pick. Click <b>Save look</b> to apply it.</p>
+</div>
+</div>
+</form>
+
+<script>
+const $=id=>document.getElementById(id);
+const main=$('id_brand_color'), second=$('id_accent_color'), own=$('id_use_own_theme'), pv=$('preview');
+function hx(h){h=h.replace('#','');return [0,2,4].map(i=>parseInt(h.substr(i,2),16));}
+function mix(a,b,t){const A=hx(a),B=hx(b);return '#'+A.map((x,i)=>Math.round(x+(B[i]-x)*t).toString(16).padStart(2,'0')).join('');}
+function update(){
+  const m=main.value, s=second.value;
+  pv.style.setProperty('--brand',m); pv.style.setProperty('--accent',s);
+  pv.style.setProperty('--brand-soft',mix(m,'#ffffff',.88)); pv.style.setProperty('--brand-line',mix(m,'#ffffff',.70));
+  pv.style.setProperty('--page-tint',mix(m,'#ffffff',.94));
+  const st=document.querySelector('input[name=style]:checked'); if(st) pv.className='preview style-'+st.value;
+}
+function pick(m,s){main.value=m; if(s) second.value=s; if(own) own.checked=true; update();}
+document.querySelectorAll('.preset').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.preset').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); pick(b.dataset.main,b.dataset.second);}));
+document.querySelectorAll('.logo-sw').forEach(b=>b.addEventListener('click',e=>{e.shiftKey?(second.value=b.dataset.c,own&&(own.checked=true),update()):pick(b.dataset.c);}));
+[main,second].forEach(i=>i.addEventListener('input',()=>{if(own) own.checked=true; update();}));
+document.querySelectorAll('input[name=style]').forEach(r=>r.addEventListener('change',update));
+document.querySelectorAll('.preset').forEach(b=>{if(b.dataset.main===main.value) b.classList.add('sel');});
+</script>
+{% endblock %}

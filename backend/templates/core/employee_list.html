@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% block content %}
+<div class="actions" style="justify-content:space-between"><div><h1>Employees</h1><p class="sub">{{ employees|length }} shown</p></div>
+<a class="btn" href="{% url 'employee_new' %}">+ Add employee</a></div>
+<form class="filters" method="get">
+  {% if user.is_hr_admin %}<select name="company"><option value="">All companies</option>{% for c in companies %}<option value="{{ c.id }}" {% if c.id|stringformat:"s" == company_id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select>{% endif %}
+  <select name="status"><option value="active" {% if status == 'active' %}selected{% endif %}>Active</option><option value="on_leave" {% if status == 'on_leave' %}selected{% endif %}>On long leave</option><option value="resigned" {% if status == 'resigned' %}selected{% endif %}>Left</option><option value="all" {% if status == 'all' %}selected{% endif %}>All</option></select>
+  <input name="q" value="{{ q }}" placeholder="Name, NIC or no.">
+  <button class="btn ghost">Filter</button>
+</form>
+<div class="card scroll"><table>
+  <tr><th>No.</th><th>Name</th>{% if user.is_hr_admin %}<th>Company</th>{% endif %}<th>Designation</th><th class="r">Basic</th><th class="r">EPF allow.</th><th class="r">Other allow.</th><th>EPF</th><th>Record</th></tr>
+  {% for e in employees %}
+  <tr><td>{{ e.emp_no }}</td><td><a href="{% url 'employee_detail' e.pk %}">{{ e.full_name }}</a></td>{% if user.is_hr_admin %}<td>{{ e.company.code }}</td>{% endif %}
+    <td>{{ e.designation|default:"—" }}</td><td class="r">{{ e.basic_salary|floatformat:"2g" }}</td><td class="r">{{ e.epf_allowance|floatformat:"2g" }}</td><td class="r">{{ e.fixed_allowance|floatformat:"2g" }}</td>
+    <td>{% if e.epf_eligible %}<span class="chip ok">Yes</span>{% else %}<span class="chip bad">No</span>{% endif %}</td>
+    <td>{% with m=e.missing_fields %}{% if m %}<span class="chip warn" title="Missing: {{ m|join:', ' }}">{{ m|length }} missing</span>{% else %}<span class="chip ok">Complete</span>{% endif %}{% endwith %}</td></tr>
+  {% empty %}<tr><td colspan="9" class="muted">No employees found.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

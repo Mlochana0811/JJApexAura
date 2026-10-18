@@ -1,0 +1,6 @@
+import {useState} from 'react';
+import {Outlet,Link} from 'react-router-dom';
+import {Menu,Bell,ShieldCheck} from 'lucide-react';
+import Sidebar from '@/components/sidebar/Sidebar';
+import {useAuth} from '@/hooks/useAuth';
+export default function AppLayout(){const [open,setOpen]=useState(false);const {user}=useAuth();return <div className={`app-shell ${open?'nav-open':''}`}><Sidebar onNavigate={()=>setOpen(false)}/>{open&&<button aria-label="Close navigation" className="nav-scrim" onClick={()=>setOpen(false)}/>}<div className="main-shell"><header className="topbar"><button className="icon-button mobile-menu" onClick={()=>setOpen(!open)} aria-label="Open navigation"><Menu/></button><span className="breadcrumb">Workspace <span>/</span> <strong>{user.role==='employee'?'Employee portal':'People operations'}</strong></span><div className="top-actions"><span className="secure-label"><ShieldCheck size={14}/> Secure workspace</span><Link to="/notifications" aria-label="Notifications"><Bell size={19}/></Link><Link to="/password" className="avatar small">{user.name.slice(0,2).toUpperCase()}</Link></div></header><main><Outlet/></main><footer className="page-footer">Jay’s HR · People, thoughtfully managed.<span>Asia / Colombo · LKR</span></footer></div></div>}

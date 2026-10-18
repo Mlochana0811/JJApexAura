@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% block title %}Sign in · Jay's HR{% endblock %}
+{% block content %}
+<div class="login card">
+  <h1>Jay's HR</h1>
+  <p class="sub">Payroll &amp; HR portal by PD Accounting Services</p>
+  <form method="post">{% csrf_token %}
+    {% if form.errors %}<p class="errorlist">Wrong user ID or password.</p>{% endif %}
+    <p><label for="id_username">User ID</label>{{ form.username }}</p>
+    <p><label for="id_password">Password</label>{{ form.password }}</p>
+    <button class="btn" type="submit">Sign in</button>
+  </form>
+</div>
+{% endblock %}

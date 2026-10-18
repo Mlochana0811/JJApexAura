@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block content %}
+<h1>Branding</h1><p class="sub">Set Jay's HR's own look, or a company's logo, colours and page design.</p>
+<div class="card"><table>
+<tr><td><b>Jay's HR default look</b><br><span class="muted small">Your screens, the sign-in page, and clients without their own colours</span></td>
+  <td><span class="pair" style="display:inline-flex"><i style="background:{{ site.brand_color }}"></i><i style="background:{{ site.accent_color }}"></i></span> {{ site.style|capfirst }}</td>
+  <td><a class="btn sm ghost" href="?company=site">Edit</a></td></tr>
+{% for c in companies %}<tr><td>{{ c.name }}</td>
+  <td>{% if c.use_own_theme %}<span class="pair" style="display:inline-flex"><i style="background:{{ c.brand_color }}"></i><i style="background:{{ c.accent_color|default:c.brand_color }}"></i></span> {{ c.style|capfirst }}{% else %}<span class="muted small">Uses Jay's HR default</span>{% endif %}</td>
+  <td><a class="btn sm ghost" href="?company={{ c.id }}">Edit</a></td></tr>{% endfor %}
+</table></div>
+{% endblock %}

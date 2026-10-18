@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block content %}
+<h1>My payslips</h1><p class="sub">Payslips appear here once your employer approves the month's payroll.</p>
+<div class="card"><table><tr><th>Month</th><th class="r">Gross</th><th class="r">Deductions</th><th class="r">Net pay</th><th></th></tr>
+{% for s in slips %}<tr><td>{{ s.period.label }}</td><td class="r">{{ s.gross_salary|floatformat:"2g" }}</td><td class="r">{{ s.total_deductions|floatformat:"2g" }}</td><td class="r"><b>{{ s.net_salary|floatformat:"2g" }}</b></td><td><a class="btn sm ghost" href="{% url 'payslip' s.pk %}">View / print</a></td></tr>
+{% empty %}<tr><td colspan="5" class="muted">No payslips yet.</td></tr>{% endfor %}</table></div>
+{% endblock %}

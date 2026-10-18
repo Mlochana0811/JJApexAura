@@ -1,0 +1,49 @@
+{% extends "base.html" %}{% block content %}
+<div class="actions" style="justify-content:space-between">
+  <div><h1>{{ p.company.name }} – {{ p.label }}</h1><p class="sub">Status: <span class="chip">{{ p.get_status_display }}</span></p></div>
+  <div class="actions">
+    {% if p.status == 'open' %}<form method="post" action="{% url 'period_action' p.pk 'submit' %}">{% csrf_token %}<button class="btn">Submit to Jay's HR</button></form>{% endif %}
+    {% if user.is_hr_admin and p.status in 'open submitted processed' %}<form method="post" action="{% url 'period_action' p.pk 'process' %}">{% csrf_token %}<button class="btn">{% if p.status == 'processed' %}Recalculate{% else %}Process payroll{% endif %}</button></form>{% endif %}
+    {% if p.status == 'processed' %}<form method="post" action="{% url 'period_action' p.pk 'approve' %}">{% csrf_token %}<button class="btn">Approve payroll</button></form>{% endif %}
+    {% if user.is_hr_admin and p.status in 'submitted processed approved' %}<form method="post" action="{% url 'period_action' p.pk 'reopen' %}">{% csrf_token %}<button class="btn ghost">Reopen for client</button></form>{% endif %}
+    {% if user.is_hr_admin and p.status == 'approved' %}<form method="post" action="{% url 'period_action' p.pk 'lock' %}">{% csrf_token %}<button class="btn ghost">Lock</button></form>{% endif %}
+  </div>
+</div>
+<div class="card actions" style="margin-bottom:16px;justify-content:space-between">
+  <div class="small">{% if slips %}<b>Salary sheet</b> – download the calculated salaries for {{ p.label }}{% else %}<b>Draft salary sheet</b> – a preview worked out from the current inputs (not yet processed){% endif %}</div>
+  <div class="actions">
+    <a class="btn ghost sm" href="{% url 'period_export' p.pk 'xlsx' %}">Download Excel</a>
+    <a class="btn ghost sm" href="{% url 'period_export' p.pk 'pdf' %}">Download PDF</a>
+    <a class="btn sm" href="{% url 'period_statutory' p.pk %}">EPF &amp; ETF files</a>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:16px"><h2>Monthly inputs</h2>
+  {% if p.copied_from %}<p class="small" style="background:var(--brand-soft);color:var(--brand);padding:8px 12px;border-radius:8px">These inputs were carried forward from <b>{{ p.copied_from.label }}</b>. Change only what is different this month.</p>{% endif %}
+  <p class="muted small">Basic salary and fixed allowance come from each employee's record. Enter only this month's changes. No-pay day = (basic + all fixed allowances) ÷ {{ p.company.no_pay_divisor }}. EPF/ETF are on basic + EPF-able allowances + EPF-able earnings (never OT or bonus). OT rate = basic ÷ {{ p.company.ot_hourly_divisor }} × {{ p.company.ot_multiplier }}.</p>
+  <form method="post">{% csrf_token %}{{ formset.management_form }}
+  <div class="scroll"><table>
+    <tr><th>Employee</th><th class="r">Basic</th><th>No-pay days</th><th>OT hours</th><th>Bonus</th><th title="Commission, piece rate, holiday pay – counts for EPF">EPF-able earnings</th><th>Other earnings</th><th>Salary advance</th><th>Welfare</th><th>Loan</th><th>Other deductions</th><th>Remarks</th></tr>
+    {% for f in formset %}<tr>{{ f.id }}<td>{{ f.instance.employee.full_name }}</td><td class="r">{{ f.instance.employee.basic_salary|floatformat:"0g" }}</td>
+      {% if editable %}<td>{{ f.no_pay_days }}</td><td>{{ f.ot_hours }}</td><td>{{ f.bonus }}</td><td>{{ f.epf_earnings }}</td><td>{{ f.other_earnings }}</td><td>{{ f.salary_advance }}</td><td>{{ f.welfare }}</td><td>{{ f.loan_recovery }}</td><td>{{ f.other_deductions }}</td><td>{{ f.remarks }}</td>
+      {% else %}<td>{{ f.instance.no_pay_days|floatformat:"-2" }}</td><td>{{ f.instance.ot_hours|floatformat:"-2" }}</td><td>{{ f.instance.bonus|floatformat:"0g" }}</td><td>{{ f.instance.epf_earnings|floatformat:"0g" }}</td><td>{{ f.instance.other_earnings|floatformat:"0g" }}</td><td>{{ f.instance.salary_advance|floatformat:"0g" }}</td><td>{{ f.instance.welfare|floatformat:"0g" }}</td><td>{{ f.instance.loan_recovery|floatformat:"0g" }}</td><td>{{ f.instance.other_deductions|floatformat:"0g" }}</td><td>{{ f.instance.remarks }}</td>{% endif %}
+    </tr>{% endfor %}
+  </table></div>
+  {% if editable %}<p style="margin-top:12px" class="actions"><button class="btn">Save inputs</button>
+    {% if previous %}<button class="btn ghost" formaction="{% url 'period_action' p.pk 'copy_previous' %}" onclick="return confirm('Replace this month\'s inputs with {{ previous.label }}\'s?')">Copy {{ previous.label }} again</button>{% endif %}</p>{% else %}<p class="muted small">Inputs are locked at this stage.</p>{% endif %}
+  </form>
+</div>
+
+{% if slips %}
+<div class="card"><h2>Payroll results</h2><div class="scroll"><table>
+  <tr><th>Employee</th><th class="r">Gross</th><th class="r">EPF base</th><th class="r">EPF 8%</th><th class="r">APIT</th><th class="r">Total ded.</th><th class="r">Net pay</th><th class="r">EPF 12%</th><th class="r">ETF 3%</th><th class="r">Cost to co.</th><th></th></tr>
+  {% for s in slips %}<tr><td>{{ s.employee.full_name }}{% if s.notes %}<br><span class="muted small">{{ s.notes }}</span>{% endif %}</td>
+    <td class="r">{{ s.gross_salary|floatformat:"2g" }}</td><td class="r">{{ s.epf_base|floatformat:"2g" }}</td><td class="r">{{ s.epf_employee|floatformat:"2g" }}</td><td class="r">{{ s.apit|floatformat:"2g" }}</td>
+    <td class="r">{{ s.total_deductions|floatformat:"2g" }}</td><td class="r"><b>{{ s.net_salary|floatformat:"2g" }}</b></td>
+    <td class="r">{{ s.epf_employer|floatformat:"2g" }}</td><td class="r">{{ s.etf_employer|floatformat:"2g" }}</td><td class="r">{{ s.employer_cost|floatformat:"2g" }}</td>
+    <td><a class="btn sm ghost" href="{% url 'payslip' s.pk %}">Payslip</a></td></tr>{% endfor %}
+  <tfoot><tr><td>Total</td><td class="r">{{ totals.gross_salary|floatformat:"2g" }}</td><td class="r">{{ totals.epf_base|floatformat:"2g" }}</td><td class="r">{{ totals.epf_employee|floatformat:"2g" }}</td><td class="r">{{ totals.apit|floatformat:"2g" }}</td><td class="r">{{ totals.total_deductions|floatformat:"2g" }}</td><td class="r">{{ totals.net_salary|floatformat:"2g" }}</td><td class="r">{{ totals.epf_employer|floatformat:"2g" }}</td><td class="r">{{ totals.etf_employer|floatformat:"2g" }}</td><td class="r">{{ totals.employer_cost|floatformat:"2g" }}</td><td></td></tr></tfoot>
+</table></div>
+<p class="muted small">"Total ded." is (EPF 8% + APIT + advances, welfare, loans, other).</p></div>
+{% endif %}
+{% endblock %}

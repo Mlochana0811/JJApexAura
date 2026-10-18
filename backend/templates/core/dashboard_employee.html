@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% block content %}
+{% if emp %}
+<h1>Hello, {{ emp.full_name }}</h1>
+<p class="sub">{{ emp.designation }} · {{ emp.company.name }}</p>
+<div class="card" style="margin-bottom:16px"><h2>My leave this year</h2>
+  <div class="grid g4">{% for b in balances %}{% if b.entitled is not None and b.entitled %}
+    <div class="stat"><div class="n">{{ b.remaining|floatformat:"-1" }}</div><div class="l">{{ b.type.name }} left of {{ b.entitled|floatformat:"-1" }}{% if b.pending %} · {{ b.pending|floatformat:"-1" }} pending{% endif %}</div></div>
+  {% endif %}{% endfor %}</div>
+  <p style="margin-top:12px"><a class="btn" href="{% url 'my_leave' %}">Apply for leave</a> <a class="btn ghost" href="{% url 'my_requests' %}">Ask HR</a></p>
+</div>
+<div class="grid g2">
+  <div class="card"><h2>Latest payslips</h2>
+    {% for s in payslips %}<p><a href="{% url 'payslip' s.pk %}">{{ s.period.label }}</a> – net Rs. {{ s.net_salary|floatformat:"2g" }}</p>
+    {% empty %}<p class="muted small">No payslips yet.</p>{% endfor %}</div>
+  <div class="card"><h2>My recent requests</h2>
+    {% for l in leaves %}<p class="small">{{ l.leave_type }} {{ l.start_date|date:"j M" }} <span class="chip {% if l.status == 'approved' %}ok{% elif l.status == 'rejected' %}bad{% endif %}">{{ l.get_status_display }}</span></p>{% endfor %}
+    {% for r in requests %}<p class="small">{{ r.subject }} <span class="chip {% if r.status == 'done' %}ok{% elif r.status == 'declined' %}bad{% endif %}">{{ r.get_status_display }}</span></p>{% endfor %}
+    {% if not leaves and not requests %}<p class="muted small">Nothing yet.</p>{% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}
