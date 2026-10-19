@@ -1,6 +1,10 @@
 from django.urls import path
-from . import api
+from . import api, salary_sheets
 urlpatterns=[
+ path('salary-sheets/',salary_sheets.sheets),
+ path('salary-sheets/options/',salary_sheets.options),
+ path('salary-sheets/<int:pk>/',salary_sheets.sheets),
+ path('salary-sheets/<int:pk>/export/',salary_sheets.export),
  path('auth/<str:action>/',api.auth),
  path('dashboard/',api.dashboard),
  path('clock/<str:verb>/',api.attendance_clock),

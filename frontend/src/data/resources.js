@@ -1,4 +1,5 @@
 export const resources={
+ 'payroll-settings':{title:'Employee payroll settings',description:'Bank details, contribution settings and statutory names. Use Salary changes to set effective-dated salary and allowances.',columns:['full_name','emp_no','company_label','bank_name','epf_no','basic_salary'],edit:true},
  employees:{title:'People',description:'Employee records, reporting lines and employment details.',columns:['full_name','emp_no','company_label','department','designation','status'],create:'Add employee',edit:true},
  companies:{title:'Companies',description:'Keep each business and its payroll rules in one place.',columns:['name','code','email','payday','is_active'],create:'Add company',edit:true},
  attendance:{title:'Attendance',description:'Actual work sessions, breaks and approved corrections.',columns:['employee_label','date','check_in','check_out','worked_hours','late_minutes']},
@@ -23,5 +24,5 @@ export const resources={
  audit:{title:'Audit trail',description:'Who changed what, and when. History is read-only.',columns:['created_at','actor_label','action','entity','object_id']},
  notifications:{title:'Notifications',description:'Updates that need your attention.',columns:['text','created_at','read']},
 };
-export const hrOnly=new Set(['companies','shifts','holidays','leave-types','entitlements','rosters','assets','checklists','policies','payroll','inputs','salaries']);
+export const hrOnly=new Set(['payroll-settings','companies','shifts','holidays','leave-types','entitlements','rosters','assets','checklists','policies','payroll','inputs','salaries']);
 export const moneyFields=new Set(['principal','installment','balance','basic_salary','epf_allowance','fixed_allowance','gross_salary','net_salary','total_deductions','bonus','salary_advance','loan_recovery','amount','epf_employee','epf_employer','etf_employer','apit','employer_cost']);

@@ -37,7 +37,8 @@ from .services import *
 # No arbitrary model/field access. Workflow fields cannot be changed with generic CRUD.
 RESOURCES = {
  'companies': (Company, ['name','code','address','email','phone','working_weekdays','payday','no_pay_divisor','ot_hourly_divisor','ot_multiplier','payroll_cutoff_day','epf_zone','epf_employer_no','epf_reg_no','etf_reg_no','tin','is_active']),
- 'employees': (Employee, ['company','emp_no','full_name','nic','date_of_birth','address','phone','email','designation','department','join_date','leave_date','status','manager','emergency_contact','bank_name','bank_branch','bank_account','epf_no','epf_eligible','apit_applicable','basic_salary','epf_allowance','fixed_allowance','surname','initials','epf_occupation_grade','notes']),
+ 'employees': (Employee, ['company','emp_no','full_name','nic','date_of_birth','address','phone','email','designation','department','join_date','leave_date','status','manager','emergency_contact']),
+ 'payroll-settings': (Employee, ['bank_name','bank_branch','bank_account','epf_no','epf_eligible','apit_applicable','surname','initials','epf_occupation_grade','notes']),
  'shifts': (Shift,['company','name','start_time','end_time','grace_minutes','expected_hours']),
  'rosters': (Roster,['employee','shift','date']),
  'holidays': (Holiday,['company','date','name']),
@@ -60,7 +61,7 @@ RESOURCES = {
  'audit': (AuditEvent,[]),
  'notifications': (Notification,[]),
 }
-HR_ONLY={'companies','employees','shifts','rosters','holidays','leave-types','entitlements','assets','checklists','policies','payroll','inputs','salaries'}
+HR_ONLY={'payroll-settings','companies','employees','shifts','rosters','holidays','leave-types','entitlements','assets','checklists','policies','payroll','inputs','salaries'}
 MANAGER_READ={'employees','shifts','rosters','holidays','attendance','corrections','leave','requests','announcements','checklists','notifications'}
 EMPLOYEE_READ={'employees','rosters','holidays','attendance','corrections','leave','leave-types','requests','announcements','documents','loans','checklists','payslips','notifications'}
 READ_ONLY={'attendance','payslips','audit','notifications'}
@@ -159,7 +160,7 @@ def scope(u,name):
     qs=model.objects.all()
     emps=visible_employees(u)
     if name=='companies':return companies(u)
-    if name=='employees':return emps
+    if name in ('employees','payroll-settings'):return emps
     if name=='notifications':return qs.filter(user=u)
     if name=='audit':return qs if u.is_hr_admin else qs.filter(company_id=u.company_id)
     if name=='inputs':return qs.filter(period__company__in=companies(u))
@@ -224,6 +225,7 @@ def form_for(request,name,instance=None):
 
 def writable(u,name,obj=None):
     if name in READ_ONLY:raise PermissionDenied('Read only')
+    if name=='payroll-settings' and obj is None:raise ValidationError('Add the employee under People first')
     if name in HR_ONLY:require_hr(u)
     if name=='companies' and not u.is_hr_admin:raise PermissionDenied('Only system admin manages companies')
     if name=='policies' and not u.is_hr_admin:raise PermissionDenied('Only payroll admin manages policies')
@@ -322,7 +324,7 @@ def resource(request,name,pk=None):
             if min(item.basic_salary,item.epf_allowance,item.fixed_allowance)<0:raise ValidationError('Salary cannot be negative')
             if PayrollPeriod.objects.filter(company=item.employee.company,status__in=['processed','approved','locked']).filter(Q(year__gt=item.effective_date.year)|Q(year=item.effective_date.year,month__gte=item.effective_date.month)).exists():raise ValidationError('This effective date overlaps processed payroll; reopen it first, or use a later-period adjustment for locked payroll')
             if item.effective_date<=timezone.localdate():
-                latest=item.employee.salary_history.filter(effective_date__lte=timezone.localdate()).first()
+                latest=item.employee.salary_history.filter(effective_date__lte=timezone.localdate()).order_by('-effective_date','-pk').first()
                 Employee.objects.filter(pk=item.employee_id).update(basic_salary=latest.basic_salary,epf_allowance=latest.epf_allowance,fixed_allowance=latest.fixed_allowance)
         audit(u,name+'.save',item,before)
         if name in ('requests','corrections','loans'):notify_hr(item.employee,f'{name.title()} submitted for {item.employee.full_name}');notify(item.employee,f'{name.title()} updated')

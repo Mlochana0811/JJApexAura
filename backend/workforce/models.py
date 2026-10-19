@@ -166,3 +166,17 @@ class PayrollPolicy(models.Model):
     reviewed = models.BooleanField(default=False)
     source_note = models.TextField(blank=True)
     class Meta: ordering = ["-effective_date", "-id"]
+
+class SalarySheet(models.Model):
+    """Versioned manual salary worksheet. Separate from statutory payroll runs."""
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT)
+    year = models.PositiveSmallIntegerField()
+    month = models.PositiveSmallIntegerField()
+    status = models.CharField(max_length=12, default='draft', choices=[('draft','Draft'),('finalized','Finalized')])
+    rows = models.JSONField(default=list)
+    company_name = models.CharField(max_length=200)
+    revision = models.PositiveIntegerField(default=1)
+    updated_at = models.DateTimeField(auto_now=True)
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['company','year','month'], name='unique_salary_sheet_month')]
+        ordering = ['-year','-month']
