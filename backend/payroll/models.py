@@ -283,7 +283,7 @@ def run_payroll(period: PayrollPeriod):
     policy = PayrollPolicy.objects.filter(company=company, effective_date__lte=first).first()
     if not policy or not policy.reviewed:
         raise ValidationError("Create and review a payroll policy effective on or before this month")
-    period.company_snapshot = {f: getattr(company, f) for f in ("name", "code", "address", "epf_zone", "epf_employer_no", "epf_district_office", "etf_reg_no", "tin", "epf_reg_no", "no_pay_divisor")}
+    period.company_snapshot = {f: getattr(company, f) for f in ("name", "code", "address", "email", "phone", "epf_zone", "epf_employer_no", "epf_district_office", "etf_reg_no", "tin", "epf_reg_no", "no_pay_divisor")}
     period.policy_snapshot = {"id": policy.pk, "name": policy.name, "effective_date": str(policy.effective_date), "source_note": policy.source_note,
         "employee_epf": str(policy.employee_epf), "employer_epf": str(policy.employer_epf), "employer_etf": str(policy.employer_etf),
         "annual_relief": str(policy.annual_relief), "bands": policy.bands}
@@ -320,7 +320,7 @@ def run_payroll(period: PayrollPeriod):
         r.net_salary = money(r.gross_salary-r.total_deductions)
         r.employer_cost = money(r.gross_salary+r.epf_employer+r.etf_employer)
         if r.net_salary < 0: raise ValidationError(f"{emp.full_name}: deductions exceed earnings")
-        snapshot = {f: str(getattr(emp, f) or "") for f in ("emp_no", "full_name", "designation", "nic", "email", "bank_name", "bank_branch", "bank_account", "epf_no", "epf_occupation_grade", "join_date", "leave_date")}
+        snapshot = {f: str(getattr(emp, f) or "") for f in ("emp_no", "full_name", "designation", "nic", "email", "bank_name", "bank_branch", "bank_account", "bank_account_name", "epf_no", "epf_occupation_grade", "join_date", "leave_date")}
         snapshot.update(surname=emp.epf_name()[0], initials=emp.epf_name()[1], epf_eligible=emp.epf_eligible,
                         days=str(max(Decimal(0), Decimal(company.no_pay_divisor)-inp.no_pay_days)), loan_deductions=deductions)
         data = r.as_dict(); data["notes"] = "; ".join(data["notes"]); data["snapshot"] = snapshot

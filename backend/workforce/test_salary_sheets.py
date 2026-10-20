@@ -55,3 +55,21 @@ class SalarySheetTests(TestCase):
         r=self.post(f'/api/payroll-settings/{self.e.pk}/',d);self.assertEqual(r.status_code,200,r.content);self.e.refresh_from_db();self.assertEqual(self.e.bank_account,'001234');self.assertEqual(self.e.basic_salary,70000)
     def test_duplicate_month(self):
         self.create();self.assertEqual(self.post('/api/salary-sheets/',self.data()).status_code,400);self.assertEqual(SalarySheet.objects.count(),1)
+    def test_active_employee_options(self):
+        Employee.objects.create(company=self.c,emp_no='2',full_name='Former',status='resigned')
+        Employee.objects.create(company=self.other,emp_no='3',full_name='Other company')
+        r=self.client.get(f'/api/salary-sheets/options/?company={self.c.pk}')
+        self.assertEqual(r.status_code,200)
+        self.assertEqual([e['id'] for e in r.json()['employees']],[self.e.pk])
+        self.assertEqual(self.client.get(f'/api/salary-sheets/options/?company={self.other.pk}').status_code,404)
+    def test_epf_basis_recalculated_on_server(self):
+        d=self.data();d['rows'][0].update(epf_basis='basic',epf_salary='1')
+        r=self.post('/api/salary-sheets/',d);self.assertEqual(r.status_code,201,r.content)
+        row=r.json()['item']['rows'][0]
+        self.assertEqual(row['epf_salary'],'70000.00');self.assertEqual(row['epf'],'5600.00')
+        s=r.json()['item'];s['rows'][0]['basic_salary']='80000'
+        r=self.post(f'/api/salary-sheets/{s["id"]}/',s)
+        self.assertEqual(r.status_code,200,r.content);self.assertEqual(r.json()['item']['rows'][0]['epf'],'6400.00')
+    def test_unknown_epf_basis_rejected(self):
+        d=self.data();d['rows'][0]['epf_basis']='arbitrary'
+        self.assertEqual(self.post('/api/salary-sheets/',d).status_code,400)

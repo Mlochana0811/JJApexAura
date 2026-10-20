@@ -201,6 +201,21 @@ class WorkflowTests(TestCase):
         p=self.period();payroll_action(self.admin,p.pk,'process');payroll_action(self.hr,p.pk,'approve')
         for path in [f'/api/reports/salary-letter/{self.e.pk}/',f'/api/reports/payslip/{p.payslips.get(employee=self.e).pk}/',f'/api/reports/variance/{p.pk}/']:
             r=self.client.get(path);self.assertEqual(r.status_code,200,r.content[:200]);self.assertTrue(r.content.startswith(b'%PDF'))
+    def test_payslip_formats_batch_and_access(self):
+        p=self.period();payroll_action(self.admin,p.pk,'process')
+        url=f'/api/reports/payslip-batch/{p.pk}/'
+        self.assertEqual(self.client.get(url).status_code,400)
+        payroll_action(self.hr,p.pk,'approve')
+        for template in ('navy','classic'):
+            r=self.client.get(url,{'template':template})
+            self.assertEqual(r.status_code,200);self.assertTrue(r.content.startswith(b'%PDF'))
+        self.assertEqual(self.client.get(url,{'template':'invalid'}).status_code,400)
+        self.client.force_login(self.employee)
+        self.assertEqual(self.client.get(url).status_code,403)
+        own=p.payslips.get(employee=self.e)
+        self.assertEqual(self.client.get(f'/api/reports/payslip/{own.pk}/?template=classic').status_code,200)
+        other=p.payslips.get(employee=self.e2)
+        self.assertEqual(self.client.get(f'/api/reports/payslip/{other.pk}/').status_code,404)
     def test_unapproved_payslip_hidden(self):
         p=self.period();payroll_action(self.admin,p.pk,'process');self.client.force_login(self.employee)
         self.assertEqual(self.client.get('/api/payslips/').json()['count'],0)

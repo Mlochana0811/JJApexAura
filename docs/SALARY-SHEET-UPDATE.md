@@ -1,3 +1,5 @@
+> Updated workflow: see [Automatic payroll rows](AUTOMATIC-PAYROLL-ROWS.md). Active employees now load automatically; add/remove row controls have been removed and EPF selection added.
+
 # Salary sheet update
 
 Based on repository commit 51238ce and the supplied salary workbook. No employee names or salary records from the reference workbook are included in the source or automatically imported.

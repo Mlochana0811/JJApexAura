@@ -28,10 +28,9 @@ def pdf(title, lines, rows=None):
     return stream.getvalue()
 
 
-def payslip_pdf(s):
-    e=s.frozen_employee;c=s.period.company_snapshot
-    fields=[('Basic',s.basic_salary),('EPF allowances',s.epf_allowance),('Other allowances',s.fixed_allowance),('EPF earnings',s.epf_earnings),('Overtime',s.ot_amount),('Bonus',s.bonus),('Other earnings',s.other_earnings),('No-pay deduction',s.no_pay_deduction),('Gross salary',s.gross_salary),('Employee EPF',s.epf_employee),('APIT',s.apit),('Advance',s.salary_advance),('Loan recovery',s.loan_recovery),('Welfare',s.welfare),('Other deductions',s.other_deductions),('Net salary',s.net_salary),('Employer EPF',s.epf_employer),('Employer ETF',s.etf_employer)]
-    return pdf(f'Payslip · {s.period.label}',[c.get('name',s.period.company.name),f'{e.emp_no} · {e.full_name}',e.designation,f'Bank: {e.bank_name} · account ending {e.bank_account[-4:]}'],[['Description','LKR']]+[[k,f'{v:,.2f}'] for k,v in fields])
+def payslip_pdf(s, template=None):
+    from .payslip_templates import render_payslips
+    return render_payslips([s],template)
 
 
 def safe_cell(v):
@@ -45,7 +44,13 @@ def generate_report(request,kind,pk):
     if kind=='payslip':
         s=get_object_or_404(scope(u,'payslips'),pk=pk)
         if s.period.status not in ('approved','locked'):raise ValidationError('Approve payroll first')
-        data=payslip_pdf(s);filename=f'payslip-{s.period.year}-{s.period.month}-{s.employee.emp_no}.pdf'
+        data=payslip_pdf(s,request.GET.get('template'));filename=f'payslip-{s.period.year}-{s.period.month}-{s.employee.emp_no}.pdf'
+    elif kind=='payslip-batch':
+        from .payslip_templates import render_payslips
+        require_hr(u);period=get_object_or_404(scope(u,'payroll'),pk=pk)
+        if period.status not in ('approved','locked'):raise ValidationError('Approve payroll first')
+        data=render_payslips(period.payslips.select_related('employee','period__company').order_by('employee__emp_no'),request.GET.get('template'))
+        filename=f'payslips-{period.year}-{period.month:02d}.pdf'
     elif kind in ('salary-letter','service-letter'):
         require_hr(u);e=get_object_or_404(scope(u,'employees'),pk=pk)
         data=pdf('Salary confirmation' if kind=='salary-letter' else 'Employment confirmation',[e.company.name,e.company.address,f'Date: {timezone.localdate()}',f'To whom it may concern,',f'This confirms that {e.full_name} (employee {e.emp_no}) joined our company on {e.join_date or "[join date not recorded]"} as {e.designation or "[designation not recorded]"}.',f'Employment status: {e.get_status_display()}.']+([f'Current recorded monthly fixed remuneration: LKR {e.total_fixed_pay:,.2f}.'] if kind=='salary-letter' else [])+['Prepared for HR review and authorized signature.','Authorized signatory: _______________________'])
@@ -82,4 +87,4 @@ def generate_report(request,kind,pk):
             rows.append([s.frozen_employee.full_name,f'{oldnet:,.2f}',f'{s.net_salary:,.2f}',f'{s.net_salary-oldnet:,.2f}'])
         data=pdf('Payroll variance',[p.company.name,p.label,'Comparison with most recent earlier payroll period.'],rows);filename=f'variance-{p.pk}.pdf'
     else:raise ValidationError('Unknown report')
-    resp=HttpResponse(data,content_type='application/pdf');resp['Content-Disposition']=f'attachment; filename="{filename}"';return resp
+    resp=HttpResponse(data,content_type='application/pdf');resp['Content-Disposition']=f'attachment; filename="{filename}"';resp['Cache-Control']='no-store';return resp

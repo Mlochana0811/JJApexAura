@@ -33,6 +33,7 @@ class Company(models.Model):
     payroll_cutoff_day = models.PositiveIntegerField(
         default=25, help_text="Day of the month by which the client must submit inputs"
     )
+    payslip_template = models.CharField(max_length=20, default="navy", choices=[("navy", "Navy & teal"), ("classic", "Classic gold")])
     # Branding
     logo = models.ImageField(upload_to="logos/", blank=True)
     use_own_theme = models.BooleanField(
@@ -99,6 +100,7 @@ class Employee(models.Model):
     bank_name = models.CharField(max_length=100, blank=True)
     bank_branch = models.CharField(max_length=100, blank=True)
     bank_account = models.CharField(max_length=40, blank=True)
+    bank_account_name = models.CharField("Bank account holder name", max_length=200, blank=True)
 
     basic_salary = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     epf_allowance = models.DecimalField(

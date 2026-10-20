@@ -36,9 +36,9 @@ from .services import *
 
 # No arbitrary model/field access. Workflow fields cannot be changed with generic CRUD.
 RESOURCES = {
- 'companies': (Company, ['name','code','address','email','phone','working_weekdays','payday','no_pay_divisor','ot_hourly_divisor','ot_multiplier','payroll_cutoff_day','epf_zone','epf_employer_no','epf_reg_no','etf_reg_no','tin','is_active']),
+ 'companies': (Company, ['name','code','address','email','phone','working_weekdays','payday','no_pay_divisor','ot_hourly_divisor','ot_multiplier','payroll_cutoff_day','epf_zone','epf_employer_no','epf_reg_no','etf_reg_no','tin','payslip_template','is_active']),
  'employees': (Employee, ['company','emp_no','full_name','nic','date_of_birth','address','phone','email','designation','department','join_date','leave_date','status','manager','emergency_contact']),
- 'payroll-settings': (Employee, ['bank_name','bank_branch','bank_account','epf_no','epf_eligible','apit_applicable','surname','initials','epf_occupation_grade','notes']),
+ 'payroll-settings': (Employee, ['bank_name','bank_branch','bank_account','bank_account_name','epf_no','epf_eligible','apit_applicable','surname','initials','epf_occupation_grade','notes']),
  'shifts': (Shift,['company','name','start_time','end_time','grace_minutes','expected_hours']),
  'rosters': (Roster,['employee','shift','date']),
  'holidays': (Holiday,['company','date','name']),
@@ -193,7 +193,7 @@ def serialize(obj,u):
     if isinstance(obj,Employee) and not (u.is_hr_admin or u.is_client_hr):
         d.pop('notes',None)
         if u.role=='manager':
-            for k in ['basic_salary','epf_allowance','fixed_allowance','bank_account','bank_name','bank_branch','nic','address','date_of_birth','emergency_contact']:d.pop(k,None)
+            for k in ['basic_salary','epf_allowance','fixed_allowance','bank_account','bank_account_name','bank_name','bank_branch','nic','address','date_of_birth','emergency_contact']:d.pop(k,None)
     if isinstance(obj,Attendance):
         d['worked_hours']=obj.worked_hours;d['on_break']=obj.breaks.filter(end__isnull=True).exists()
         d['breaks']=[{'start':b.start,'end':b.end} for b in obj.breaks.all()]
@@ -210,6 +210,8 @@ def form_for(request,name,instance=None):
         fields=[f for f in fields if f not in ('company','basic_salary','epf_allowance','fixed_allowance')]
     if name in ('requests','documents','loans') and not (u.is_hr_admin or u.is_client_hr):fields=[f for f in fields if f!='employee']
     data=body(request) if request.method!='GET' else None
+    if name=='companies' and data is not None and 'payslip_template' not in data:
+        data=data.copy();data['payslip_template']=instance.payslip_template if instance else 'navy'
     Form=forms.modelform_factory(model,fields=fields)
     form=Form(data,request.FILES or None,instance=instance)
     for field in form.fields.values():
@@ -395,7 +397,7 @@ def action(request,name,pk,verb):
             address=obj.snapshot.get('email')
             if not address:raise ValidationError('No email in the approved snapshot')
             message=EmailMessage(f'Payslip · {obj.period.label}','Your payslip is attached.',settings.DEFAULT_FROM_EMAIL,[address])
-            message.attach(f'payslip-{obj.pk}.pdf',payslip_pdf(obj),'application/pdf');message.send()
+            message.attach(f'payslip-{obj.pk}.pdf',payslip_pdf(obj,template=data.get('template')),'application/pdf');message.send()
             obj.emailed_at=timezone.now();obj.save(update_fields=['emailed_at']);audit(u,'payslip.email',obj)
         elif name=='employees' and verb=='invite':
             require_hr(u)

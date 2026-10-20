@@ -40,6 +40,10 @@ def clean_rows(raw, company_id):
         seen.add(pk);emp=employees[pk]
         r={'employee_id':pk,'name':emp.full_name,'emp_no':emp.emp_no}
         for k in MONEY:r[k]=amount(row.get(k,'0'),f'{emp.emp_no}: {k}')
+        basis=row.get('epf_basis','custom')
+        if basis not in ('basic','custom'):raise ValidationError('Select a valid EPF calculation method')
+        r['epf_basis']=basis
+        if basis=='basic':r['epf_salary']=r['basic_salary']
         for k in OPTIONAL:r[k]=amount(row.get(k),f'{emp.emp_no}: {k}',True)
         r['epf_rate']=amount(row.get('epf_rate','8'),'EPF rate')
         if Decimal(r['epf_rate'])>100 or (r['format_percent'] is not None and Decimal(r['format_percent'])>100):raise ValidationError('Percentages must be between 0 and 100')
@@ -91,7 +95,7 @@ def sheets(request,pk=None):
 def options(request):
     require_hr(request.user)
     c=get_object_or_404(companies(request.user),pk=request.GET.get('company'))
-    emps=Employee.objects.filter(company=c).order_by('emp_no')
+    emps=Employee.objects.filter(company=c,status=Employee.ACTIVE).order_by('emp_no')
     # Suggestions only; the user reviews monthly amounts, including dated changes.
     return JsonResponse({'employees':[{'id':e.pk,'name':e.full_name,'emp_no':e.emp_no,'status':e.status,'basic_salary':str(e.basic_salary),'epf_eligible':e.epf_eligible} for e in emps]})
 
