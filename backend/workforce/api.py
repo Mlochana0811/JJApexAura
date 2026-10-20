@@ -366,6 +366,8 @@ def schema(request,name,pk=None):
 def action(request,name,pk,verb):
     data=body(request);u=request.user
     if name not in RESOURCES:raise Http404
+    if name=='employees' and verb in ('invite','create-account','account') and not u.is_hr_admin:
+        raise PermissionDenied('Only Admin can manage login accounts')
     with transaction.atomic():
         obj=get_object_or_404(scope(u,name).select_for_update(),pk=pk)
         if name=='payroll':payroll_action(u,obj.pk,verb,data)
@@ -400,7 +402,8 @@ def action(request,name,pk,verb):
             message.attach(f'payslip-{obj.pk}.pdf',payslip_pdf(obj,template=data.get('template')),'application/pdf');message.send()
             obj.emailed_at=timezone.now();obj.save(update_fields=['emailed_at']);audit(u,'payslip.email',obj)
         elif name=='employees' and verb=='invite':
-            require_hr(u)
+            if not u.is_hr_admin:raise PermissionDenied('Only Admin can invite users')
+            if obj.status!=Employee.ACTIVE or not obj.company.is_active:raise ValidationError('Employee and company must be active')
             if User.objects.filter(employee=obj).exists():raise ValidationError('Employee already has an account; use password reset')
             if not obj.email:raise ValidationError('Add the employee email first')
             token=secrets.token_urlsafe(32)
@@ -408,13 +411,30 @@ def action(request,name,pk,verb):
             Invitation.objects.create(employee=obj,token_hash=hashlib.sha256(token.encode()).hexdigest(),expires_at=timezone.now()+timedelta(days=2))
             send_mail('Your HR invitation',f'Create your account: {settings.PUBLIC_URL}/invite/{token}',settings.DEFAULT_FROM_EMAIL,[obj.email])
             audit(u,'employee.invite',obj)
+        elif name=='employees' and verb=='create-account':
+            if not u.is_hr_admin:raise PermissionDenied('Only Admin can create login accounts')
+            if obj.status!=Employee.ACTIVE or not obj.company.is_active:raise ValidationError('Employee and company must be active')
+            if User.objects.filter(employee=obj).exists():raise ValidationError('Employee already has a login account')
+            role=data.get('role','employee')
+            if role not in ('employee','client_hr'):raise ValidationError('Select Employee or HR')
+            username=str(data.get('username','')).strip()
+            email=str(data.get('email','')).strip()
+            password=data.get('password','')
+            if not username or not email:raise ValidationError('Enter username and email')
+            account=User(username=username,email=email,employee=obj,company=obj.company,role=role,must_change_password=True)
+            validate_password(password,account)
+            account.set_password(password);account.full_clean();account.save()
+            Invitation.objects.filter(employee=obj,used_at__isnull=True).update(used_at=timezone.now())
+            audit(u,'account.create',account)
         elif name=='employees' and verb=='account':
             if not u.is_hr_admin:raise PermissionDenied('Only system admin can grant HR/manager roles')
             role=data.get('role','employee')
             if role not in ('employee','manager','client_hr'):raise ValidationError('Invalid role')
             account=User.objects.filter(employee=obj).first()
-            if not account:raise ValidationError('Employee must accept their invitation first')
-            account.role=role;account.save();audit(u,'account.role',account)
+            if not account:raise ValidationError('Create an account or have the employee accept an invitation first')
+            if account.is_superuser or account.role=='admin':raise PermissionDenied('System admin accounts cannot be changed here')
+            before=plain(account)
+            account.role=role;account.company=obj.company;account.save();audit(u,'account.role',account,before)
         elif name=='checklists' and verb=='complete':
             require_hr(u);obj.completed=True;obj.save();audit(u,'checklist.complete',obj)
         else:raise ValidationError('Unknown action')

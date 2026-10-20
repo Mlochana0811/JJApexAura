@@ -188,6 +188,30 @@ class WorkflowTests(TestCase):
             self.assertEqual(self.client.get(f'/api/files/{pk}/').status_code,200)
             otherhr=User.objects.create_user('otherhr',role='client_hr',company=self.other,must_change_password=False);self.client.force_login(otherhr)
             self.assertEqual(self.client.get(f'/api/files/{pk}/').status_code,404)
+    def test_admin_creates_account_and_password_change_required(self):
+        data={'username':'newlogin','email':'new@example.invalid','password':'Temporary!Unique482','role':'client_hr'}
+        path=f'/api/employees/{self.e2.pk}/create-account/'
+        r=self.post(path,data);self.assertEqual(r.status_code,200,r.content)
+        account=User.objects.get(username='newlogin')
+        self.assertTrue(account.check_password(data['password']));self.assertTrue(account.must_change_password)
+        self.assertEqual(account.company_id,self.c.pk);self.assertEqual(account.role,'client_hr')
+        event=AuditEvent.objects.get(action='account.create');self.assertNotIn('password',event.after)
+        self.assertEqual(self.post(path,data).status_code,400)
+        self.client.force_login(account);self.assertEqual(self.client.get('/api/dashboard/').status_code,428)
+        self.assertEqual(self.post('/api/auth/password/',{'old_password':data['password'],'password':'Changed!Unique975'}).status_code,200)
+        self.assertEqual(self.client.get('/api/dashboard/').status_code,200)
+    def test_only_admin_manages_credentials_and_roles(self):
+        data={'username':'newlogin','email':'new@example.invalid','password':'Temporary!Unique482','role':'employee'}
+        for user in (self.hr,self.manager,self.employee):
+            self.client.force_login(user)
+            for action in ('create-account','invite','account'):
+                self.assertEqual(self.post(f'/api/employees/{self.e2.pk}/{action}/',data).status_code,403)
+        self.client.force_login(self.admin)
+        data['role']='admin';self.assertEqual(self.post(f'/api/employees/{self.e2.pk}/create-account/',data).status_code,400)
+        data.update(role='employee',password='123');self.assertEqual(self.post(f'/api/employees/{self.e2.pk}/create-account/',data).status_code,400)
+        for role in ('client_hr','employee'):
+            self.assertEqual(self.post(f'/api/employees/{self.e.pk}/account/',{'role':role}).status_code,200)
+            self.employee.refresh_from_db();self.assertEqual(self.employee.role,role)
     def test_invite_single_use(self):
         r=self.post(f'/api/employees/{self.e2.pk}/invite/');self.assertEqual(r.status_code,400) # missing email
         self.e2.email='new@example.invalid';self.e2.save()
