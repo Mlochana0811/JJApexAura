@@ -107,6 +107,7 @@ class PayrollInput(models.Model):
     loan_recovery = models.DecimalField(**MONEY)
     other_deductions = models.DecimalField(**MONEY)
     apit_override = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    salary_template = models.JSONField(default=dict, blank=True)
     tax_note = models.CharField(max_length=255, blank=True)
     remarks = models.CharField(max_length=255, blank=True)
 
@@ -257,8 +258,12 @@ def pay_inputs(emp, inp, company):
     first = date(inp.period.year, inp.period.month, 1)
     last = date(inp.period.year, inp.period.month, calendar.monthrange(inp.period.year, inp.period.month)[1])
     basic, allowance, fixed = effective_salary(emp, first, last)
+    if inp.salary_template:
+        basic=Decimal(inp.salary_template["basic_salary"])
+        allowance=sum((Decimal(a["amount"]) for a in inp.salary_template["allowances"] if a["epf"]),Decimal(0))
+        fixed=sum((Decimal(a["amount"]) for a in inp.salary_template["allowances"] if not a["epf"]),Decimal(0))
     return PayInputs(
-        basic_salary=basic, fixed_allowance=fixed, epf_allowance=allowance,
+        basic_salary=basic, fixed_allowance=fixed, epf_allowance=allowance, template_rounding=bool(inp.salary_template),
         epf_earnings=inp.epf_earnings, no_pay_days=inp.no_pay_days, ot_hours=inp.ot_hours, bonus=inp.bonus,
         other_earnings=inp.other_earnings, salary_advance=inp.salary_advance, welfare=inp.welfare,
         loan_recovery=inp.loan_recovery, other_deductions=inp.other_deductions,
@@ -321,6 +326,7 @@ def run_payroll(period: PayrollPeriod):
         r.employer_cost = money(r.gross_salary+r.epf_employer+r.etf_employer)
         if r.net_salary < 0: raise ValidationError(f"{emp.full_name}: deductions exceed earnings")
         snapshot = {f: str(getattr(emp, f) or "") for f in ("emp_no", "full_name", "designation", "nic", "email", "bank_name", "bank_branch", "bank_account", "bank_account_name", "epf_no", "epf_occupation_grade", "join_date", "leave_date")}
+        snapshot["salary_template"]={**inp.salary_template,"monthly_inputs":{k:str(getattr(inp,k)) for k in INPUT_FIELDS}} if inp.salary_template else {}
         snapshot.update(surname=emp.epf_name()[0], initials=emp.epf_name()[1], epf_eligible=emp.epf_eligible,
                         days=str(max(Decimal(0), Decimal(company.no_pay_divisor)-inp.no_pay_days)), loan_deductions=deductions)
         data = r.as_dict(); data["notes"] = "; ".join(data["notes"]); data["snapshot"] = snapshot

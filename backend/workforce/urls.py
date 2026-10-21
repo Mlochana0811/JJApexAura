@@ -1,7 +1,9 @@
 from django.urls import path
-from . import api, salary_sheets
+from . import api, salary_sheets, template_payroll
 urlpatterns=[
  path('salary-sheets/',salary_sheets.sheets),
+ path('salary-sheets/upload/',template_payroll.upload),
+ path('salary-sheets/<int:pk>/apply/',template_payroll.apply_to_payroll),
  path('salary-sheets/options/',salary_sheets.options),
  path('salary-sheets/<int:pk>/',salary_sheets.sheets),
  path('salary-sheets/<int:pk>/export/',salary_sheets.export),

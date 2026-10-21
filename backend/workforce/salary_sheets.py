@@ -56,10 +56,10 @@ def clean_rows(raw, company_id):
     return result
 
 def payload(s):
-    return {'id':s.pk,'company':s.company_id,'company_name':s.company_name,'year':s.year,'month':s.month,'status':s.status,'revision':s.revision,'rows':s.rows,'total':str(sum((Decimal(r['salary_amount']) for r in s.rows),Decimal(0)))}
+    return {'id':s.pk,'company':s.company_id,'company_name':s.company_name,'year':s.year,'month':s.month,'status':s.status,'revision':s.revision,'rows':s.rows,'template_config':s.template_config,'total':str(sum((Decimal(r['salary_amount']) for r in s.rows),Decimal(0)))}
 
 @endpoint()
-@require_http_methods(['GET','POST'])
+@require_http_methods(['GET','POST','DELETE'])
 def sheets(request,pk=None):
     require_hr(request.user)
     qs=SalarySheet.objects.filter(company__in=companies(request.user))
@@ -70,17 +70,27 @@ def sheets(request,pk=None):
     data=body(request)
     if not isinstance(data,dict):raise ValidationError('Expected a form object')
     with transaction.atomic():
+        if request.method=='DELETE' and not pk:raise ValidationError('Select a salary sheet')
         if pk:
             s=get_object_or_404(qs.select_for_update(),pk=pk)
             if s.status!='draft':raise ValidationError('Finalized sheets cannot be edited. Keep the original and record adjustments separately.')
             if data.get('revision')!=s.revision:return JsonResponse({'error':'This sheet changed in another window. Reload before saving.'},status=409)
             before=plain(s)
+            if request.method=='DELETE':
+                audit(request.user,'salary_sheet.delete',s,before);s.delete()
+                return JsonResponse({'ok':True})
         else:
             form=SheetHeader(data)
             if not form.is_valid():raise ValidationError('Select a company, year (2000–2100) and month (1–12)')
             c=get_object_or_404(companies(request.user),pk=form.cleaned_data['company'])
             s=SalarySheet(company=c,company_name=c.name,year=form.cleaned_data['year'],month=form.cleaned_data['month']);before={}
-        s.rows=clean_rows(data.get('rows'),s.company_id)
+        from . import template_payroll as template
+        config=data.get('template_config',s.template_config)
+        if s.pk and bool(config)!=bool(s.template_config):raise ValidationError('Existing sheet format cannot be changed')
+        if config:
+            s.template_config=template.clean_config(config,s.company)
+            s.rows=template.clean_rows(data.get('rows'),s.company,s.template_config)
+        else:s.rows=clean_rows(data.get('rows'),s.company_id)
         finalize=data.get('finalize',False)
         if type(finalize)!=bool:raise ValidationError('Invalid finalize option')
         if finalize:
@@ -97,7 +107,8 @@ def options(request):
     c=get_object_or_404(companies(request.user),pk=request.GET.get('company'))
     emps=Employee.objects.filter(company=c,status=Employee.ACTIVE).order_by('emp_no')
     # Suggestions only; the user reviews monthly amounts, including dated changes.
-    return JsonResponse({'employees':[{'id':e.pk,'name':e.full_name,'emp_no':e.emp_no,'status':e.status,'basic_salary':str(e.basic_salary),'epf_eligible':e.epf_eligible} for e in emps]})
+    from .template_payroll import default_config
+    return JsonResponse({'template_config':default_config(c),'employees':[{'id':e.pk,'name':e.full_name,'emp_no':e.emp_no,'status':e.status,'basic_salary':str(e.basic_salary),'epf_eligible':e.epf_eligible,'epf_allowance':str(e.epf_allowance),'fixed_allowance':str(e.fixed_allowance)} for e in emps]})
 
 def workbook_bytes(s):
     # Runtime export uses the project's existing openpyxl dependency. No employee
@@ -142,7 +153,11 @@ def safe(v):return "'"+v if v and v[0] in '=+-@' else v
 def export(request,pk):
     require_hr(request.user)
     s=get_object_or_404(SalarySheet.objects.filter(company__in=companies(request.user)),pk=pk)
-    response=HttpResponse(workbook_bytes(s),content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    if s.template_config:
+        from .template_payroll import workbook_bytes as template_bytes
+        data=template_bytes(s)
+    else:data=workbook_bytes(s)
+    response=HttpResponse(data,content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition']=f'attachment; filename="salary-sheet-{s.year}-{s.month:02}-{s.status}.xlsx"'
     response['Cache-Control']='no-store'
     return response

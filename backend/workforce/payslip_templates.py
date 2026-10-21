@@ -21,6 +21,9 @@ def select_template(s,template=None):
 def figures(s):
     """No-pay is shown explicitly as a deduction so gross display reconciles."""
     earnings=[('BASIC SALARY',s.basic_salary),('EPF-ABLE ALLOWANCES',s.epf_allowance),('FIXED ALLOWANCE',s.fixed_allowance),('OTHER EPF-ABLE EARNINGS',s.epf_earnings),('OVERTIME',s.ot_amount),('BONUS',s.bonus),('OTHER EARNINGS',s.other_earnings)]
+    template=getattr(s,'snapshot',{}).get('salary_template')
+    if template:
+        earnings=[('BASIC SALARY',s.basic_salary)]+[(a['name'],Decimal(a['amount'])) for a in template['allowances']]+earnings[3:]
     deductions=[('LEAVE / NO-PAY',s.no_pay_deduction),('ADV. PERSONAL INCOME TAX',s.apit),('EPF - EMPLOYEE',s.epf_employee),('WELFARE',s.welfare),('SALARY ADVANCE',s.salary_advance),('LOAN RECOVERY',s.loan_recovery),('OTHER DEDUCTIONS',s.other_deductions)]
     gross=sum((Decimal(v) for _,v in earnings),Decimal(0))
     total_deductions=Decimal(s.total_deductions)+Decimal(s.no_pay_deduction)

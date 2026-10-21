@@ -73,3 +73,12 @@ class SalarySheetTests(TestCase):
     def test_unknown_epf_basis_rejected(self):
         d=self.data();d['rows'][0]['epf_basis']='arbitrary'
         self.assertEqual(self.post('/api/salary-sheets/',d).status_code,400)
+    def test_delete_draft_revision_and_finalized_protection(self):
+        s=self.create();url=f'/api/salary-sheets/{s["id"]}/'
+        def delete(revision):return self.client.delete(url,json.dumps({'revision':revision}),content_type='application/json')
+        self.assertEqual(delete(0).status_code,409)
+        self.assertEqual(delete(s['revision']).status_code,200)
+        self.assertFalse(SalarySheet.objects.filter(pk=s['id']).exists())
+        s=self.create();url=f'/api/salary-sheets/{s["id"]}/';d=self.data();d.update(revision=s['revision'],finalize=True)
+        self.assertEqual(self.post(url,d).status_code,200)
+        self.assertEqual(delete(s['revision']+1).status_code,400)

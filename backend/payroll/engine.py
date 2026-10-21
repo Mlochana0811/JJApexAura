@@ -54,6 +54,7 @@ def monthly_apit(monthly_taxable: Decimal) -> Decimal:
 @dataclass
 class PayInputs:
     basic_salary: Decimal
+    template_rounding: bool = False
     fixed_allowance: Decimal = Decimal(0)      # NOT counted for EPF/ETF
     epf_allowance: Decimal = Decimal(0)        # counted for EPF/ETF (COLA, food, special living …)
     epf_earnings: Decimal = Decimal(0)         # this month's EPF-able extras (commission, piece rate …)
@@ -134,9 +135,14 @@ def calculate(p: PayInputs) -> PayResult:
     bonus, other_earn = D(p.bonus), D(p.other_earnings)
     gross = money(basic + epf_allow + allowance - no_pay + ot + bonus + other_earn + epf_earn)
 
+    if p.template_rounding:
+        fraction=no_pay_days / D(p.no_pay_divisor)
+        gross=money((basic+epf_allow+allowance)*(1-fraction)+basic/D(p.ot_hourly_divisor)*D(p.ot_multiplier)*D(p.ot_hours)+bonus+other_earn+epf_earn)
+        no_pay=money(basic+epf_allow+allowance+ot+bonus+other_earn+epf_earn-gross)
+
     # EPF / ETF — on total earnings: basic + EPF-able allowances + EPF-able extras (never OT or bonus)
     if p.epf_eligible:
-        epf_base = money(basic_earned + epf_allow_earned + epf_earn)
+        epf_base = money((basic+epf_allow)*(1-no_pay_days/D(p.no_pay_divisor))+epf_earn) if p.template_rounding else money(basic_earned + epf_allow_earned + epf_earn)
         epf_ee = money(epf_base * EPF_EMPLOYEE_RATE)
         epf_er = money(epf_base * EPF_EMPLOYER_RATE)
         etf_er = money(epf_base * ETF_EMPLOYER_RATE)

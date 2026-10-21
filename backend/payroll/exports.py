@@ -70,6 +70,9 @@ def filename(period, ext):
 
 # ---------------------------------------------------------------- Excel
 def to_excel(period):
+    slips=list(period.payslips.all())
+    if period.status in ('processed','approved','locked') and slips and all(s.snapshot.get('salary_template',{}).get('config') for s in slips) and all(s.snapshot['salary_template']['config']==slips[0].snapshot['salary_template']['config'] for s in slips):
+        return template_payroll_excel(period,slips)
     rows, draft = salary_rows(period)
     brand = period.frozen_company.theme()["brand"].lstrip("#")
     wb = Workbook()
@@ -257,3 +260,37 @@ def to_pdf(period):
 
     doc.build(story, onFirstPage=footer, onLaterPages=footer)
     return buf.getvalue()
+
+
+def template_payroll_excel(period,slips):
+    """Template-based processed report, with APIT and final net added explicitly."""
+    from types import SimpleNamespace
+    from openpyxl import load_workbook
+    from workforce.template_payroll import FIELDS, workbook_bytes
+    config=slips[0].snapshot['salary_template']['config']
+    if any(s.snapshot['salary_template']['config']!=config for s in slips):
+        raise ValueError('Payroll contains mixed template configurations')
+    rows=[]
+    for slip in slips:
+        t=slip.snapshot['salary_template'];e=slip.frozen_employee
+        row=dict.fromkeys(FIELDS,'0');row.update(t['monthly_inputs']);row.update(basic_salary=t['basic_salary'],name=e.full_name,emp_no=e.emp_no)
+        for i,a in enumerate(t['allowances']):row[f'allowance_{i}']=a['amount']
+        rows.append(row)
+    proxy=SimpleNamespace(company=period.frozen_company,company_name=period.frozen_company.name,year=period.year,month=period.month,status=period.status,template_config={**config,"custom_columns":[]},rows=rows)
+    w=load_workbook(io.BytesIO(workbook_bytes(proxy)));ws=w['Payroll']
+    ws['A5']='Processed payroll snapshot. Contributions reflect the reviewed payroll policy and eligibility. X: APIT; Y: final net pay.'
+    from copy import copy
+    for col in (24,25):
+        ws.cell(8,col)._style=copy(ws.cell(8,23)._style)
+        for row in range(9,9+len(slips)):ws.cell(row,col)._style=copy(ws.cell(row,23)._style)
+    ws['T8']='EPF employee';ws['U8']='EPF employer';ws['V8']='ETF employer';ws['X8']='APIT';ws['Y8']='Net pay after APIT'
+    for i,s in enumerate(slips,9):
+        for col,value in enumerate([s.gross_salary,s.epf_base,s.epf_employee,s.epf_employer,s.etf_employer,s.net_salary+s.apit,s.apit,s.net_salary],18):
+            ws.cell(i,col,value).number_format='#,##0.00'
+        ws.cell(i,15,s.loan_recovery)
+    end=8+len(slips)
+    for col in range(18,26):
+        letter=get_column_letter(col);ws.cell(4,col,f'=SUM({letter}9:{letter}{end})')
+    ws.column_dimensions['X'].width=18;ws.column_dimensions['Y'].width=23
+    ws.print_area=f'A1:Y{end}';ws.auto_filter.ref=f'A8:Y{end}'
+    stream=io.BytesIO();w.save(stream);return stream.getvalue()

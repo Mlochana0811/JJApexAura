@@ -174,6 +174,7 @@ class SalarySheet(models.Model):
     month = models.PositiveSmallIntegerField()
     status = models.CharField(max_length=12, default='draft', choices=[('draft','Draft'),('finalized','Finalized')])
     rows = models.JSONField(default=list)
+    template_config = models.JSONField(default=dict, blank=True)
     company_name = models.CharField(max_length=200)
     revision = models.PositiveIntegerField(default=1)
     updated_at = models.DateTimeField(auto_now=True)
