@@ -1,12 +1,12 @@
-/* JJApexAura navy and teal theme. Replace frontend/src/styles/index.css. */
+/* JJApexAura white and purple theme. Replace frontend/src/styles/index.css. */
 @import 'tailwindcss';
 @import '@fontsource-variable/geist';
 :root {
     font-family: 'Geist Variable', sans-serif;
     color: #1e293b;
-    background: #f5f7fa;
+    background: #f7f7fc;
     font-synthesis: none;
-    --green: #0f766e !important; /* Keep teal when account branding sets an inline value. */
+    --green: #7c3aed !important; /* Preserve the selected purple theme over inline account branding. */
     --dark: #172b4d;
     --muted: #64748b;
     --line: #e2e8f0
@@ -50,7 +50,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-    outline: 3px solid #0d9488;
+    outline: 3px solid #7c3aed;
     outline-offset: 3px
 }
 h1,
@@ -113,8 +113,8 @@ small {
 .brand-mark {
     display: grid;
     place-items: center;
-    background: #e6f5f2;
-    color: #0f766e;
+    background: #f3e8ff;
+    color: #7c3aed;
     width: 39px;
     height: 43px;
     border-radius: 13px
@@ -169,8 +169,8 @@ small {
     background: #f1f5f9
 }
 .sidebar nav a.active {
-    background: #e6f5f2;
-    color: #0f766e;
+    background: #f3e8ff;
+    color: #7c3aed;
     font-weight: 600
 }
 .sidebar footer {
@@ -263,7 +263,7 @@ small {
     color: #64748b
 }
 .icon-button:hover {
-    background: #e6f5f2
+    background: #f3e8ff
 }
 main {
     max-width: 1560px;
@@ -291,7 +291,7 @@ main {
     max-width: 760px
 }
 .greeting-dot {
-    color: #0d9488
+    color: #7c3aed
 }
 .date-chip {
     display: flex;
@@ -334,7 +334,7 @@ main {
     align-items: center;
     font-size: 11px;
     margin-top: 18px;
-    color: #f0fdfa
+    color: #faf5ff
 }
 .pill {
     display: inline-flex;
@@ -370,7 +370,7 @@ main {
 }
 .orbit {
     position: absolute;
-    border: 1px solid #5eead420;
+    border: 1px solid #c4b5fd20;
     border-radius: 50%;
     width: 220px;
     height: 220px
@@ -382,20 +382,20 @@ main {
 .people-icon {
     width: 130px;
     height: 130px;
-    border: 1px solid #5eead440;
-    background: #0d948833;
+    border: 1px solid #c4b5fd40;
+    background: #7c3aed33;
     border-radius: 32px;
     display: grid;
     place-items: center;
-    color: #99f6e4;
+    color: #e9d5ff;
     transform: rotate(-8deg)
 }
 .floating-check {
     position: absolute;
     bottom: 8px;
     right: 20px;
-    background: #f0fdfa;
-    color: #0f766e;
+    background: #faf5ff;
+    color: #7c3aed;
     box-shadow: 0 8px 40px #0002;
     padding: 11px 14px;
     border-radius: 7px;
@@ -432,7 +432,7 @@ main {
 .stat-icon {
     padding: 7px;
     border-radius: 7px;
-    background: #e6f5f2;
+    background: #f3e8ff;
     color: #64748b;
     display: grid;
     place-items: center
@@ -582,7 +582,7 @@ main {
     place-items: center;
     border-radius: 8px;
     color: #64748b;
-    background: #e6f5f2;
+    background: #f3e8ff;
     font-size: 11px;
     font-weight: 600
 }
@@ -635,7 +635,7 @@ main {
     color: #fff
 }
 .btn.primary:hover {
-    background: #115e59
+    background: #6d28d9
 }
 .btn.secondary {
     background: #fff;
@@ -643,7 +643,7 @@ main {
     color: #64748b
 }
 .btn.secondary:hover {
-    background: #f0fdfa
+    background: #faf5ff
 }
 .btn.full {
     width: 100%;
@@ -659,7 +659,7 @@ main {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    color: #0f766e;
+    color: #7c3aed;
     font-size: 12px
 }
 .empty {
@@ -813,8 +813,8 @@ tbody tr:last-child td {
     white-space: nowrap
 }
 .tabs>a.active {
-    border-bottom-color: #0f766e;
-    color: #0f766e
+    border-bottom-color: #7c3aed;
+    color: #7c3aed
 }
 .alert {
     padding: 13px 16px;
@@ -829,9 +829,9 @@ tbody tr:last-child td {
     border: 1px solid #fecaca
 }
 .alert.info {
-    background: #f0fdfa;
-    color: #115e59;
-    border: 1px solid #99f6e4
+    background: #faf5ff;
+    color: #6d28d9;
+    border: 1px solid #e9d5ff
 }
 .modal-backdrop {
     position: fixed;
@@ -925,7 +925,7 @@ tbody tr:last-child td {
 .check-field input {
     width: 17px;
     height: 17px;
-    accent-color: #0f766e
+    accent-color: #7c3aed
 }
 .check-field small {
     flex-basis: 100%
@@ -978,8 +978,8 @@ tbody tr:last-child td {
     margin: 10px 0 20px
 }
 .confirmation {
-    background: #f0fdfa;
-    border: 1px solid #99f6e4;
+    background: #faf5ff;
+    border: 1px solid #e9d5ff;
     border-radius: 8px;
     padding: 18px;
     margin-top: 20px
@@ -1073,7 +1073,7 @@ tbody tr:last-child td {
 }
 .auth-story .brand-mark {
     background: #ffffff15;
-    color: #99f6e4
+    color: #e9d5ff
 }
 .auth-story .brand small {
     color: #b8c9dc
@@ -1100,7 +1100,7 @@ tbody tr:last-child td {
     font-size: 10px
 }
 .auth-story .eyebrow {
-    color: #5eead4;
+    color: #c4b5fd;
     margin-bottom: 25px
 }
 .auth-art {
@@ -1112,15 +1112,15 @@ tbody tr:last-child td {
     transform: rotate(-9deg)
 }
 .auth-art div {
-    border: 1px solid #5eead455;
-    background: #14b8a615;
+    border: 1px solid #c4b5fd55;
+    background: #a78bfa15;
     width: 95px;
     height: 130px;
     border-radius: 65px 65px 25px 25px
 }
 .auth-art div:nth-child(2) {
     height: 170px;
-    background: #2dd4bf28
+    background: #a78bfa28
 }
 .auth-art div:nth-child(3) {
     height: 100px
@@ -1150,7 +1150,7 @@ tbody tr:last-child td {
     display: block;
     text-align: center;
     font-size: 11px;
-    color: #0f766e
+    color: #7c3aed
 }
 .auth-note {
     font-size: 10px;
@@ -1411,41 +1411,70 @@ tbody tr:last-child td {
     flex-wrap: wrap;
     gap: 16px
 }
-/* Dark sidebar: explicit foregrounds keep navigation readable. */
+/* White navigation with light-purple hover and solid-purple current page. */
 .sidebar {
-    background: #172b4d;
-    border-right-color: #243d60;
-    color: #f8fafc;
-    --muted: #b8c9dc;
-    --line: #304867;
+    background: #ffffff;
+    border-right-color: #e9e5f0;
+    color: #334155;
+    --muted: #64748b;
+    --line: #e9e5f0;
 }
-.sidebar .brand { color: #ffffff; }
-.sidebar .brand small { color: #b8c9dc; }
-.sidebar .brand-mark { background: #234962; color: #99f6e4; }
-.sidebar .workspace-label { background: #213b5d; border-color: #36506f; color: #e2e8f0; }
-.sidebar nav h3 { color: #b8c9dc; }
-.sidebar nav a { color: #d5e1ef; }
-.sidebar nav a:hover { background: #243f62; color: #ffffff; }
-.sidebar nav a.active { background: #0f766e; color: #ffffff; box-shadow: inset 3px 0 #5eead4; }
-.sidebar footer { border-top-color: #304867; }
-.sidebar .avatar { background: #234962; color: #99f6e4; }
-.sidebar .icon-button { color: #d5e1ef; }
-.sidebar .icon-button:hover { background: #243f62; color: #ffffff; }
-.sidebar nav { scrollbar-color: #536c89 #172b4d; scrollbar-width: thin; }
-.sidebar :focus-visible { outline-color: #5eead4; }
-.welcome-banner { background: linear-gradient(120deg, #172b4d 0%, #172b4d 55%, #115e59 100%); }
-.auth-story { background: linear-gradient(155deg, #172b4d 0%, #172b4d 65%, #115e59 100%); }
-.btn.primary:hover:not(:disabled) { background: #115e59; }
-.btn.primary:active:not(:disabled) { background: #134e4a; }
+.sidebar .brand { color: #231b38; }
+.sidebar .brand small { color: #64748b; }
+.sidebar .brand-mark { background: #f3e8ff; color: #7c3aed; }
+.sidebar .workspace-label { background: #faf8ff; border-color: #ede9fe; color: #65547c; }
+.sidebar nav h3 { color: #766c87; }
+.sidebar nav a {
+    color: #574e65;
+    font-size: 13px;
+    border-radius: 9px;
+    min-height: 42px;
+    transition: background-color .15s, color .15s;
+}
+.sidebar nav a:hover { background: #f3e8ff; color: #6d28d9; }
+.sidebar nav a.active, .sidebar nav a.active:hover {
+    background: #7c3aed;
+    color: #ffffff;
+    box-shadow: 0 3px 9px #7c3aed20;
+}
+.sidebar footer { border-top-color: #e9e5f0; background: #ffffff; }
+.sidebar .avatar { background: #ede9fe; color: #6d28d9; }
+.sidebar .icon-button { color: #766c87; }
+.sidebar .icon-button:hover { background: #f3e8ff; color: #6d28d9; }
+.sidebar nav { scrollbar-color: #d8cdef #ffffff; scrollbar-width: thin; }
+.sidebar :focus-visible { outline-color: #7c3aed; }
+.topbar { background: #ffffff; }
+.top-actions>a:hover { color: #7c3aed; }
+.avatar { background: #ede9fe; color: #6d28d9; }
+.panel, .stat-card { border-color: #e9e5f0; border-radius: 12px; box-shadow: 0 3px 14px #231b3804; }
+.btn { border-radius: 8px; font-size: 12px; min-height: 36px; }
+.btn.secondary { background: #f3e8ff; border-color: #e9d5ff; color: #6d28d9; }
+.btn.secondary:hover:not(:disabled) { background: #e9d5ff; border-color: #d8b4fe; }
+.btn.secondary:active:not(:disabled) { background: #ddd6fe; }
+.tabs>a:hover { background: #faf5ff; color: #6d28d9; }
+table { font-size: 12px; }
+th { background: #f6f3fc; color: #5e5470; font-size: 11px; font-weight: 600; }
+tbody tr:hover { background: #faf8ff; }
+.salary-table input { font-variant-numeric: tabular-nums; }
+.salary-editor details { margin: 18px 0; border: 1px solid #e9e5f0; border-radius: 10px; background: #fcfaff; padding: 14px 16px; }
+.salary-editor summary { cursor: pointer; color: #6d28d9; font-size: 13px; font-weight: 600; }
+.salary-editor details[open] summary { margin-bottom: 12px; }
+.salary-editor details p { font-size: 12px; color: #64748b; margin-bottom: 16px; }
+.salary-editor details .form-grid { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+.salary-editor details .field select { border-color: #ddd6fe; }
+.welcome-banner { background: linear-gradient(120deg, #33234d 0%, #4c2875 55%, #6d28d9 100%); }
+.auth-story { background: linear-gradient(155deg, #33234d 0%, #4c2875 65%, #6d28d9 100%); }
+.btn.primary:hover:not(:disabled) { background: #6d28d9; }
+.btn.primary:active:not(:disabled) { background: #5b21b6; }
 .field input:focus, .field select:focus, .field textarea:focus,
-.salary-table input:focus { border-color: #0f766e; }
+.salary-table input:focus { border-color: #7c3aed; }
 input::placeholder, textarea::placeholder { color: #64748b; opacity: 1; }
 .field-error { color: #b91c1c; }
 .pill.error, .pill.rejected { color: #b91c1c; background: #fef2f2; }
 .pill.warning { color: #b45309; background: #fffbeb; }
 .salary-editor .table-footer strong { color: #172b4d; }
-::selection { background: #99f6e4; color: #172b4d; }
+::selection { background: #e9d5ff; color: #172b4d; }
 @media (prefers-reduced-motion: reduce) {
-    .btn, .stat-card, .sidebar { transition: none; }
+    .btn, .stat-card, .sidebar, .sidebar nav a { transition: none; }
     .stat-card:hover { transform: none; }
 }
