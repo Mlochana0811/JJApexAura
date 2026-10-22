@@ -97,6 +97,7 @@ def sheets(request,pk=None):
         if s.pk and bool(config)!=bool(s.template_config):raise ValidationError('Existing sheet format cannot be changed')
         if config:
             s.template_config=template.clean_config(config,s.company)
+            s.template_config['column_visibility'].update(template.default_config(s.company)['column_visibility'])
             s.rows=template.clean_rows(data.get('rows'),s.company,s.template_config)
         else:s.rows=clean_rows(data.get('rows'),s.company_id)
         finalize=data.get('finalize',False)
@@ -170,3 +171,42 @@ def export(request,pk):
     response['Content-Disposition']=f'attachment; filename="salary-sheet-{s.year}-{s.month:02}-{s.status}.xlsx"'
     response['Cache-Control']='no-store'
     return response
+
+
+@endpoint()
+@require_http_methods(['GET','POST'])
+def column_settings(request):
+    require_hr(request.user)
+    from .models import SalaryColumnSettings
+    from .template_payroll import FIELDS, RESULTS, HEADERS
+    data=body(request) if request.method=='POST' else request.GET
+    if not hasattr(data,'get'):raise ValidationError('Invalid settings')
+    company_id=data.get('company')
+    c=get_object_or_404(companies(request.user),pk=company_id)
+    keys=['emp_no','name',*FIELDS,'remarks',*RESULTS]
+    columns=[{'key':k,'label':'EPF earnings' if k=='epf_base' else label.rstrip(' *')} for k,label in zip(keys,HEADERS)]
+    if request.method=='GET':
+        obj=SalaryColumnSettings.objects.filter(company=c).first()
+        return JsonResponse({'columns':columns,'visibility':obj.visibility if obj else {},'revision':obj.revision if obj else 0})
+    visibility=data.get('visibility')
+    if not isinstance(visibility,dict) or any(k not in keys or type(v)!=bool for k,v in visibility.items()):raise ValidationError('Invalid column selections')
+    visibility={k:visibility.get(k,True) for k in keys}
+    with transaction.atomic():
+        # Company lock also serializes concurrent first-time settings creation.
+        c=companies(request.user).select_for_update().get(pk=c.pk)
+        obj=SalaryColumnSettings.objects.filter(company=c).first()
+        if data.get('revision')!=(obj.revision if obj else 0):return JsonResponse({'error':'Settings changed in another window. Select the company again.'},status=409)
+        if obj:
+            before=plain(obj);obj.visibility=visibility;obj.revision+=1;obj.save()
+        else:
+            before={};obj=SalaryColumnSettings.objects.create(company=c,visibility=visibility)
+        audit(request.user,'salary_columns.save',obj,before)
+        for sheet in SalarySheet.objects.select_for_update().filter(company=c,status='draft'):
+            if not sheet.template_config:continue
+            before=plain(sheet)
+            sheet.template_config={**sheet.template_config,'column_visibility':{**sheet.template_config.get('column_visibility',{}),**visibility}}
+            sheet.template_config['removed_columns']=[k for k in sheet.template_config.get('removed_columns',[]) if not visibility.get(k,False)]
+            for i,a in enumerate(sheet.template_config['allowances']):
+                if visibility.get(f'allowance_{i}',False):a['enabled']=True
+            sheet.revision+=1;sheet.save();audit(request.user,'salary_sheet.columns',sheet,before)
+    return JsonResponse({'columns':columns,'visibility':obj.visibility,'revision':obj.revision})

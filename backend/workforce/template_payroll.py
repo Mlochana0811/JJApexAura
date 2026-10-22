@@ -21,7 +21,9 @@ HEADERS=['Emp No *','Employee name','Basic salary *']+LABELS+['No-pay days','OT 
 RESULTS=['gross_salary','epf_base','epf_employee','epf_employer','etf_employer','salary_amount']
 
 def default_config(c):
-    return {'version':2,'allowances':[{'name':n,'epf':i<3,'etf':i<3} for i,n in enumerate(LABELS)],'no_pay_divisor':str(c.no_pay_divisor),'ot_hourly_divisor':str(c.ot_hourly_divisor),'ot_multiplier':str(c.ot_multiplier)}
+    from .models import SalaryColumnSettings
+    visibility=SalaryColumnSettings.objects.filter(company=c).values_list('visibility',flat=True).first() or {}
+    return {'version':2,'column_visibility':visibility,'allowances':[{'name':n,'epf':i<3,'etf':i<3} for i,n in enumerate(LABELS)],'no_pay_divisor':str(c.no_pay_divisor),'ot_hourly_divisor':str(c.ot_hourly_divisor),'ot_multiplier':str(c.ot_multiplier)}
 
 def clean_config(raw,c):
     out=default_config(c)

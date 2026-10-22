@@ -1,6 +1,7 @@
 from django.urls import path
 from . import api, salary_sheets, template_payroll
 urlpatterns=[
+ path('salary-column-settings/',salary_sheets.column_settings),
  path('salary-sheets/',salary_sheets.sheets),
  path('salary-sheets/upload/',template_payroll.upload),
  path('salary-sheets/<int:pk>/apply/',template_payroll.apply_to_payroll),

@@ -182,3 +182,9 @@ class SalarySheet(models.Model):
     class Meta:
         constraints = [models.UniqueConstraint(fields=['company','year','month'], name='unique_salary_sheet_month')]
         ordering = ['-year','-month']
+
+
+class SalaryColumnSettings(models.Model):
+    company = models.OneToOneField('core.Company', on_delete=models.CASCADE)
+    visibility = models.JSONField(default=dict, blank=True)
+    revision = models.PositiveIntegerField(default=1)

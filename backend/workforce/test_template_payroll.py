@@ -99,3 +99,18 @@ class TemplatePayrollTests(TestCase):
  def test_food_exclusion_requires_review(self):
   d=self.data();d['finalize']=True;d['template_config']['allowances'][1]['epf']=False
   self.assertEqual(self.post('/api/salary-sheets/',d).status_code,400)
+
+ def test_company_column_settings_update_drafts_not_finalized(self):
+  draft=self.post('/api/salary-sheets/',self.data()).json()['item']
+  d=self.data();d['month']=9;d['finalize']=True;final=self.post('/api/salary-sheets/',d).json()['item']
+  url='/api/salary-column-settings/'
+  self.assertEqual(self.client.get(url,{'company':self.c.pk}).json()['revision'],0)
+  response=self.post(url,{'company':self.c.pk,'revision':0,'visibility':{'basic_salary':False}})
+  self.assertEqual(response.status_code,200,response.content)
+  updated=self.client.get(f'/api/salary-sheets/{draft["id"]}/').json()['item']
+  self.assertFalse(updated['template_config']['column_visibility']['basic_salary']);self.assertEqual(updated['rows'],draft['rows']);self.assertEqual(updated['revision'],2)
+  unchanged=self.client.get(f'/api/salary-sheets/{final["id"]}/').json()['item'];self.assertEqual(unchanged,final)
+  self.assertFalse(self.client.get('/api/salary-sheets/options/',{'company':self.c.pk}).json()['template_config']['column_visibility']['basic_salary'])
+  self.assertEqual(self.post(url,{'company':self.c.pk,'revision':0,'visibility':{}}).status_code,409)
+  self.assertEqual(self.post(url,{'company':self.c.pk,'revision':1,'visibility':{'basic_salary':'no'}}).status_code,400)
+  other=company(name='Other',code='OTHER');self.assertEqual(self.client.get(url,{'company':other.pk}).status_code,404)

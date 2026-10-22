@@ -1,6 +1,6 @@
 # Allowance contribution controls and payroll settings
 
-Option 2 places separate EPF and ETF Yes/No selectors underneath each of the six allowance headers. Yes includes that allowance in the relevant contribution base. These controls affect the sheet calculation, Excel formulas, payroll preview and processed payroll. Basic salary remains included. This update does not add contribution switches to employee identifiers, deductions or calculated output columns.
+Each allowance header now has one EPF/ETF checkbox. Checked includes the allowance in both bases; unchecked excludes it from both. Previously saved differing flags display a mixed (dash) checkbox until changed, preserving historical values. These controls affect the sheet calculation, Excel formulas, payroll preview and processed payroll. Basic salary remains included. This update does not add contribution switches to employee identifiers, deductions or calculated output columns.
 
 New sheets default food and cost-of-living allowances to inclusion. A draft may be saved for review, but finalization requires a contribution review note if either of these allowance slots is excluded from EPF or ETF. A note is an audit record, not a legal exemption. Verify actual payment classification with your payroll adviser; changing a header label does not change its legal treatment.
 
@@ -10,7 +10,7 @@ Official references reviewed 22 October 2026:
 
 EPF normally comprises 8% employee and 12% employer contributions. ETF is 3% employer funded. Food allowance is included in the published earnings definitions. Employer contributions do not reduce employee net salary. Existing payroll policies and employee eligibility remain in effect.
 
-Column display settings now live under Employee payroll settings > Salary sheet columns. Select a saved draft, set Yes/No and save. Settings are per saved sheet, not company defaults. They do not affect contribution eligibility or payroll amounts. Reopen a sheet after changing its settings; stale revisions are rejected. Finalized sheet layouts and calculations remain immutable.
+Column display settings live under Employee payroll settings > Salary sheet columns. Select a company: no saved sheet is required. Tick to show a column, untick to hide it, then Save column settings. Saving updates existing draft layouts and supplies defaults for new sheets. It does not affect contribution eligibility or salary amounts. Existing finalized layouts remain unchanged. Reopen drafts in other tabs after settings changes; stale saves are rejected. Previously removed fields can be shown again but their deleted values remain zero. There are no Add column or Remove column controls.
 
 Finalized sheets have Remove (archive). Archived sheets are hidden from the normal list; use Show archived sheets to view or restore them. Archiving retains the original, audit history, company/month reservation, and linked payroll/payslips. It does not cancel payroll or allow another sheet for the same month. An archived sheet cannot be applied to payroll until restored. Draft deletion remains unchanged.
 
@@ -22,4 +22,4 @@ Stop the application and back up your database and project. Copy the updated sou
     .\.venv\Scripts\python.exe backend\manage.py migrate
     python scripts/dev.py
 
-The new migration adds the archived flag. No additional packages are required.
+Migrations add the archived flag and company column settings. No additional packages are required.

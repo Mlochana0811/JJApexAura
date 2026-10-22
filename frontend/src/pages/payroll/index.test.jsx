@@ -18,15 +18,15 @@ describe('salary worksheet',()=>{
 
  it('previews the template calculation and rounded EPF',()=>{expect(rowTotal({basic_salary:70000,epf_salary:30000,epf_rate:8,leave_deductions:1000,welfare:500,salary_advance:5000})).toEqual({epf:2400,total:61100});expect(rowTotal({epf_salary:12345.67,epf_rate:8}).epf).toBe(987.65)});
  it('automatically loads employees, saves entered amounts and exposes an export',async()=>{const user=userEvent.setup();render(<MemoryRouter><Payroll/></MemoryRouter>);await screen.findByText('No salary sheets yet');await user.click(screen.getByText('New salary sheet'));await user.selectOptions(screen.getByLabelText('Company'),'1');await waitFor(()=>expect(api).toHaveBeenCalledWith('salary-sheets/options/?company=1'));await screen.findByText('Example Person');expect(screen.queryByText('Add row')).toBeNull();expect(screen.queryByText('Remove')).toBeNull();const input=screen.getByLabelText('Example Person: Cost of living allowance');await user.clear(input);await user.type(input,'30000');await user.click(screen.getByText('Save draft'));await screen.findByText('Draft saved.');expect(api).toHaveBeenCalledWith('salary-sheets/',expect.objectContaining({method:'POST',body:expect.objectContaining({company:1,rows:expect.arrayContaining([expect.objectContaining({employee_id:7,allowance_0:'30000'})])})}));expect(screen.getByText('Download Excel (draft)').getAttribute('href')).toBe('/api/salary-sheets/1/export/');});
- it('shows separate contribution selectors in allowance headers',async()=>{
+ it('sets both contribution flags with one checkbox',async()=>{
  const user=userEvent.setup();render(<MemoryRouter><Payroll/></MemoryRouter>);
  await screen.findByText('No salary sheets yet');await user.click(screen.getByText('New salary sheet'));await user.selectOptions(screen.getByLabelText('Company'),'1');await screen.findByText('Example Person');
  expect(screen.queryByText('Choose columns — Yes / No')).toBeNull();
- expect(screen.getByLabelText('Food allowance: EPF').closest('th')).toBeTruthy();
- expect(screen.getByLabelText('Food allowance: ETF').value).toBe('true');
- await user.selectOptions(screen.getByLabelText('Other allowance: ETF'),'true');
+ expect(screen.getByLabelText('Food allowance: EPF/ETF').closest('th')).toBeTruthy();
+ expect(screen.getByLabelText('Food allowance: EPF/ETF').checked).toBe(true);
+ await user.click(screen.getByLabelText('Other allowance: EPF/ETF'));
  await user.click(screen.getByText('Save draft'));await screen.findByText('Draft saved.');
  const saved=api.mock.calls.find(([path,opts])=>path==='salary-sheets/'&&opts?.method==='POST')[1].body;
- expect(saved.template_config.allowances[5].etf).toBe(true);expect(saved.template_config.allowances[5].epf).toBe(false);
+ expect(saved.template_config.allowances[5].etf).toBe(true);expect(saved.template_config.allowances[5].epf).toBe(true);
  });
 });
