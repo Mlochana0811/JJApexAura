@@ -264,6 +264,7 @@ def pay_inputs(emp, inp, company):
         fixed=sum((Decimal(a["amount"]) for a in inp.salary_template["allowances"] if not a["epf"]),Decimal(0))
     return PayInputs(
         basic_salary=basic, fixed_allowance=fixed, epf_allowance=allowance, template_rounding=bool(inp.salary_template),
+        etf_allowance=sum((Decimal(a["amount"]) for a in inp.salary_template["allowances"] if a.get("etf",a["epf"])),Decimal(0)) if inp.salary_template else None,
         epf_earnings=inp.epf_earnings, no_pay_days=inp.no_pay_days, ot_hours=inp.ot_hours, bonus=inp.bonus,
         other_earnings=inp.other_earnings, salary_advance=inp.salary_advance, welfare=inp.welfare,
         loan_recovery=inp.loan_recovery, other_deductions=inp.other_deductions,
@@ -304,7 +305,11 @@ def run_payroll(period: PayrollPeriod):
         if emp.epf_eligible:
             r.epf_employee = money(r.epf_base * policy.employee_epf)
             r.epf_employer = money(r.epf_base * policy.employer_epf)
-            r.etf_employer = money(r.epf_base * policy.employer_etf)
+            etf_base=r.epf_base
+            if inp.salary_template:
+                t=inp.salary_template
+                etf_base=money((Decimal(t['basic_salary'])+sum((Decimal(a['amount']) for a in t['allowances'] if a.get('etf',a['epf'])),Decimal(0)))*(1-inp.no_pay_days/Decimal(company.no_pay_divisor)))
+            r.etf_employer = money(etf_base * policy.employer_etf)
         if emp.apit_applicable:
             if (inp.bonus or inp.other_earnings) and inp.apit_override is None:
                 raise ValidationError(f"{emp.full_name}: enter a reviewed APIT override and note for bonus/other earnings")

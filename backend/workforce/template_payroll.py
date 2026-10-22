@@ -21,7 +21,7 @@ HEADERS=['Emp No *','Employee name','Basic salary *']+LABELS+['No-pay days','OT 
 RESULTS=['gross_salary','epf_base','epf_employee','epf_employer','etf_employer','salary_amount']
 
 def default_config(c):
-    return {'version':2,'allowances':[{'name':n,'epf':i<3} for i,n in enumerate(LABELS)],'no_pay_divisor':str(c.no_pay_divisor),'ot_hourly_divisor':str(c.ot_hourly_divisor),'ot_multiplier':str(c.ot_multiplier)}
+    return {'version':2,'allowances':[{'name':n,'epf':i<3,'etf':i<3} for i,n in enumerate(LABELS)],'no_pay_divisor':str(c.no_pay_divisor),'ot_hourly_divisor':str(c.ot_hourly_divisor),'ot_multiplier':str(c.ot_multiplier)}
 
 def clean_config(raw,c):
     out=default_config(c)
@@ -34,7 +34,11 @@ def clean_config(raw,c):
         name=str(item.get('name','')).strip()
         if not name or len(name)>100:raise ValidationError('Allowance names must contain 1–100 characters')
         if type(item.get('enabled',True))!=bool:raise ValidationError('Invalid allowance enabled flag')
-        out['allowances'].append({'name':name,'epf':item['epf'],'enabled':item.get('enabled',True)})
+        if type(item.get('etf',item['epf']))!=bool:raise ValidationError('Choose Yes or No for ETF')
+        out['allowances'].append({'name':name,'epf':item['epf'],'etf':item.get('etf',item['epf']),'enabled':item.get('enabled',True)})
+    note=str(raw.get('contribution_review_note','')).strip()
+    if len(note)>1000:raise ValidationError('Contribution review note must be at most 1000 characters')
+    out['contribution_review_note']=note
     custom=raw.get('custom_columns',[])
     if not isinstance(custom,list) or len(custom)>30:raise ValidationError('Maximum 30 custom columns')
     out['custom_columns']=[]
@@ -71,7 +75,8 @@ def totals(r,cfg):
     ot=base/D(cfg['ot_hourly_divisor'])*D(cfg['ot_multiplier'])*v['ot_hours']
     gross=money(fixed*(1-fraction)+ot+v['bonus'])
     epfbase=money((base+sum(v[f'allowance_{i}'] for i,a in enumerate(cfg['allowances']) if a['epf']))*(1-fraction))
-    ee=money(epfbase*D('.08'));er=money(epfbase*D('.12'));etf=money(epfbase*D('.03'))
+    etfbase=money((base+sum(v[f'allowance_{i}'] for i,a in enumerate(cfg['allowances']) if a.get('etf',a['epf'])))*(1-fraction))
+    ee=money(epfbase*D('.08'));er=money(epfbase*D('.12'));etf=money(etfbase*D('.03'))
     net=gross-ee-sum(v[k] for k in ('salary_advance','welfare','loan_recovery','other_deductions'))
     return dict(zip(RESULTS,map(str,[gross,epfbase,ee,er,etf,money(net)])))
 
@@ -132,12 +137,14 @@ def upload(request):
             metadata=clean_config(metadata,c)
         headers=[s.cell(8,i).value for i in range(1,24)]
         keys=['emp_no','name',*FIELDS,'remarks',*RESULTS]
-        if any(headers[i]!=metadata.get('header_names',{}).get(keys[i],HEADERS[i]) for i in list(range(3))+list(range(9,23))):raise ValidationError('Header row 8 does not match the salary template')
+        if any(headers[i]!=metadata.get('header_names',{}).get(keys[i],HEADERS[i]) and not (i==18 and headers[i]=='EPF earnings') for i in list(range(3))+list(range(9,23))):raise ValidationError('Header row 8 does not match the salary template')
         cfg=metadata or default_config(c)
         for i in range(6):
             flag=s.cell(7,i+4).value
             if flag not in ('Yes','No'):raise ValidationError('Each allowance flag in row 7 must be Yes or No')
-            cfg['allowances'][i]={**cfg['allowances'][i],'name':headers[i+3],'epf':flag=='Yes'}
+            etf_flag=s.cell(6,i+4).value if s['A6'].value=='ETF included' else flag
+            if etf_flag not in ('Yes','No'):raise ValidationError('ETF flags must be Yes or No')
+            cfg['allowances'][i]={**cfg['allowances'][i],'name':headers[i+3],'epf':flag=='Yes','etf':etf_flag=='Yes'}
         cfg=clean_config(cfg,c)
         emps={e.emp_no:e for e in Employee.objects.filter(company=c)};rows=[]
         for cells in s.iter_rows(min_row=9,max_col=17):
@@ -167,6 +174,13 @@ def workbook_bytes(s):
     ws['F2']=D(cfg['no_pay_divisor']);ws['F3']=D(cfg['ot_hourly_divisor']);ws['H3']=D(cfg['ot_multiplier'])
     ws['A4']=f'{s.company_name} — {s.status.upper()} — template checks before APIT; review statutory payroll separately.'
     for i,a in enumerate(cfg['allowances']):ws.cell(7,i+4,'Yes' if a['epf'] else 'No');ws.cell(8,i+4,safe(a['name']))
+    for merged in list(ws.merged_cells.ranges):
+        if merged.min_row==6:ws.unmerge_cells(str(merged))
+    for row in ws.iter_rows(min_row=6,max_row=6):
+        for cell in row:cell.value=None
+    ws['A6']='ETF included';ws['A7']='EPF included'
+    ws['A5']='Allowance contribution flags: row 6 ETF, row 7 EPF. Grey results are checks before APIT. Review classifications before processing.'
+    for i,a in enumerate(cfg['allowances']):ws.cell(6,i+4,'Yes' if a.get('etf',a['epf']) else 'No')
     end=max(108,len(s.rows)+8)
     for i,r in enumerate(s.rows,9):
         ws.cell(i,1,safe(r['emp_no']));ws.cell(i,2,safe(r['name']))
@@ -177,6 +191,8 @@ def workbook_bytes(s):
             for col in range(1,24):ws.cell(i,col)._style=copy(ws.cell(9,col)._style)
         for col in range(18,24):
             ws.cell(i,col,Translator(ws.cell(9,col).value,origin=ws.cell(9,col).coordinate).translate_formula(ws.cell(i,col).coordinate))
+    for i in range(9,end+1):ws.cell(i,22,f'=ROUND(ROUND((C{i}+SUMPRODUCT(D{i}:I{i},--($D$6:$I$6="Yes")))*(1-J{i}/$F$2),2)*3%,2)')
+    ws['S8']='EPF earnings'
     for col in range(18,24):
         from openpyxl.utils import get_column_letter
         letter=get_column_letter(col);ws.cell(4,col,f'=SUM({letter}9:{letter}{end})')
@@ -205,6 +221,7 @@ def apply_to_payroll(request,pk):
     from .models import Loan
     with transaction.atomic():
         s=get_object_or_404(SalarySheet.objects.select_for_update().filter(company__in=companies(request.user)),pk=pk)
+        if s.archived:raise ValidationError('Restore this archived sheet before applying it')
         if s.status!='finalized' or not s.template_config:raise ValidationError('Finalize a new template sheet first')
         period,_=start_period(s.company,s.year,s.month,carry_forward=False)
         period=PayrollPeriod.objects.select_for_update().get(pk=period.pk)

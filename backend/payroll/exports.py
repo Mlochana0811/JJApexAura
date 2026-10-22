@@ -28,7 +28,7 @@ COLUMNS = [
     ("fixed_allowance", "Other allowances", True),
     ("no_pay_deduction", "No-pay", True), ("ot_amount", "Overtime", True), ("bonus", "Bonus", True),
     ("epf_earnings", "EPF-able earnings", True), ("other_earnings", "Other earnings", True),
-    ("gross_salary", "Gross salary", True), ("epf_base", "EPF/ETF base", True),
+    ("gross_salary", "Gross salary", True), ("epf_base", "EPF base", True),
     ("epf_employee", "EPF 8%", True), ("apit", "APIT", True), ("salary_advance", "Salary advance", True),
     ("welfare", "Welfare", True), ("loan_recovery", "Loan", True), ("other_deductions", "Other deductions", True),
     ("total_deductions", "Total deductions", True), ("net_salary", "Net salary", True),

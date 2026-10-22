@@ -56,15 +56,16 @@ def clean_rows(raw, company_id):
     return result
 
 def payload(s):
-    return {'id':s.pk,'company':s.company_id,'company_name':s.company_name,'year':s.year,'month':s.month,'status':s.status,'revision':s.revision,'rows':s.rows,'template_config':s.template_config,'total':str(sum((Decimal(r['salary_amount']) for r in s.rows),Decimal(0)))}
+    return {'id':s.pk,'archived':s.archived,'company':s.company_id,'company_name':s.company_name,'year':s.year,'month':s.month,'status':s.status,'revision':s.revision,'rows':s.rows,'template_config':s.template_config,'total':str(sum((Decimal(r['salary_amount']) for r in s.rows),Decimal(0)))}
 
 @endpoint()
-@require_http_methods(['GET','POST','DELETE'])
+@require_http_methods(['GET','POST','DELETE','PATCH'])
 def sheets(request,pk=None):
     require_hr(request.user)
     qs=SalarySheet.objects.filter(company__in=companies(request.user))
     if request.method=='GET':
         if pk:return JsonResponse({'item':payload(get_object_or_404(qs,pk=pk))})
+        qs=qs.filter(archived=request.GET.get('archived')=='true')
         page=max(1,int(request.GET.get('page',1)))
         return JsonResponse({'items':[{k:v for k,v in payload(s).items() if k!='rows'} for s in qs[(page-1)*50:page*50]],'count':qs.count()})
     data=body(request)
@@ -73,6 +74,12 @@ def sheets(request,pk=None):
         if request.method=='DELETE' and not pk:raise ValidationError('Select a salary sheet')
         if pk:
             s=get_object_or_404(qs.select_for_update(),pk=pk)
+            if request.method=='PATCH':
+                if data.get('revision')!=s.revision:return JsonResponse({'error':'Sheet changed. Reload first.'},status=409)
+                if s.status!='finalized' or type(data.get('archived'))!=bool:raise ValidationError('Only finalized sheets can be archived or restored')
+                before=plain(s);s.archived=data['archived'];s.revision+=1;s.save()
+                audit(request.user,'salary_sheet.archive' if s.archived else 'salary_sheet.restore',s,before)
+                return JsonResponse({'item':payload(s)})
             if s.status!='draft':raise ValidationError('Finalized sheets cannot be edited. Keep the original and record adjustments separately.')
             if data.get('revision')!=s.revision:return JsonResponse({'error':'This sheet changed in another window. Reload before saving.'},status=409)
             before=plain(s)
@@ -80,6 +87,7 @@ def sheets(request,pk=None):
                 audit(request.user,'salary_sheet.delete',s,before);s.delete()
                 return JsonResponse({'ok':True})
         else:
+            if request.method=='PATCH':raise ValidationError('Select a salary sheet')
             form=SheetHeader(data)
             if not form.is_valid():raise ValidationError('Select a company, year (2000–2100) and month (1–12)')
             c=get_object_or_404(companies(request.user),pk=form.cleaned_data['company'])
@@ -94,6 +102,7 @@ def sheets(request,pk=None):
         finalize=data.get('finalize',False)
         if type(finalize)!=bool:raise ValidationError('Invalid finalize option')
         if finalize:
+            if s.template_config and any(a.get('enabled',True) and (not a['epf'] or not a.get('etf',a['epf'])) for a in s.template_config['allowances'][:2]) and not s.template_config.get('contribution_review_note'):raise ValidationError('Record the reviewed basis for excluding food or cost-of-living allowance from EPF/ETF')
             if any(Decimal(r['salary_amount'])<0 for r in s.rows):raise ValidationError('Resolve negative salary amounts before finalizing')
             s.status='finalized'
         if pk:s.revision+=1

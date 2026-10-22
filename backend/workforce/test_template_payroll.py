@@ -72,3 +72,30 @@ class TemplatePayrollTests(TestCase):
   response=self.client.post('/api/salary-sheets/upload/',{'company':self.c.pk,'year':2026,'month':10,'file':SimpleUploadedFile('salary.xlsx',export.content)})
   self.assertEqual(response.status_code,200,response.content)
   self.assertEqual(response.json()['template_config']['header_names']['basic_salary'],'Monthly basic')
+
+ def test_separate_etf_flags_and_payroll(self):
+  d=self.data();d['template_config']['allowances'][3]['etf']=True;d['finalize']=True
+  response=self.post('/api/salary-sheets/',d);self.assertEqual(response.status_code,201,response.content);sheet=response.json()['item']
+  self.assertEqual(sheet['rows'][0]['epf_base'],'37333.33');self.assertEqual(sheet['rows'][0]['etf_employer'],'1260.00')
+  exported=self.client.get(f'/api/salary-sheets/{sheet["id"]}/export/')
+  ws=load_workbook(io.BytesIO(exported.content))['Payroll'];self.assertEqual(ws['G6'].value,'Yes');self.assertEqual(ws['G7'].value,'No');self.assertIn('$D$6',ws['V9'].value)
+  uploaded=self.client.post('/api/salary-sheets/upload/',{'company':self.c.pk,'year':2026,'month':10,'file':SimpleUploadedFile('salary.xlsx',exported.content)})
+  self.assertEqual(uploaded.status_code,200,uploaded.content);self.assertTrue(uploaded.json()['template_config']['allowances'][3]['etf'])
+  r=self.post(f'/api/salary-sheets/{sheet["id"]}/apply/',{});self.assertEqual(r.status_code,200,r.content)
+  period=PayrollPeriod.objects.get(pk=r.json()['period_id']);run_payroll(period)
+  self.assertEqual(period.payslips.get().etf_employer,D('1260'))
+ def test_archive_revision_restore_and_isolation(self):
+  d=self.data();d['finalize']=True;r=self.post('/api/salary-sheets/',d);sheet=r.json()['item'];url=f'/api/salary-sheets/{sheet["id"]}/'
+  def patch(revision,archived):return self.client.patch(url,json.dumps({'revision':revision,'archived':archived}),content_type='application/json')
+  self.assertEqual(patch(0,True).status_code,409)
+  r=patch(sheet['revision'],True);self.assertEqual(r.status_code,200,r.content)
+  self.assertEqual(self.client.get('/api/salary-sheets/').json()['count'],0)
+  self.assertEqual(self.client.get('/api/salary-sheets/?archived=true').json()['count'],1)
+  self.assertEqual(self.post(f'{url}apply/',{}).status_code,400)
+  self.assertEqual(patch(r.json()['item']['revision'],False).status_code,200)
+  self.assertEqual(self.client.get('/api/salary-sheets/').json()['count'],1)
+  other=company(name='Other',code='ZZ');u=User.objects.create_user('otherhr',role='client_hr',company=other,must_change_password=False);self.client.force_login(u)
+  self.assertEqual(patch(3,True).status_code,404)
+ def test_food_exclusion_requires_review(self):
+  d=self.data();d['finalize']=True;d['template_config']['allowances'][1]['epf']=False
+  self.assertEqual(self.post('/api/salary-sheets/',d).status_code,400)

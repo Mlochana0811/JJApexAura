@@ -55,6 +55,7 @@ def monthly_apit(monthly_taxable: Decimal) -> Decimal:
 class PayInputs:
     basic_salary: Decimal
     template_rounding: bool = False
+    etf_allowance: Decimal | None = None
     fixed_allowance: Decimal = Decimal(0)      # NOT counted for EPF/ETF
     epf_allowance: Decimal = Decimal(0)        # counted for EPF/ETF (COLA, food, special living …)
     epf_earnings: Decimal = Decimal(0)         # this month's EPF-able extras (commission, piece rate …)
@@ -107,7 +108,7 @@ def calculate(p: PayInputs) -> PayResult:
     from dataclasses import fields
     for f in fields(p):
         v = getattr(p, f.name)
-        if isinstance(v, bool): continue
+        if isinstance(v, bool) or (f.name=="etf_allowance" and v is None): continue
         try:
             d = Decimal(str(v))
             if not d.is_finite() or d < 0: raise ValueError()
@@ -145,7 +146,8 @@ def calculate(p: PayInputs) -> PayResult:
         epf_base = money((basic+epf_allow)*(1-no_pay_days/D(p.no_pay_divisor))+epf_earn) if p.template_rounding else money(basic_earned + epf_allow_earned + epf_earn)
         epf_ee = money(epf_base * EPF_EMPLOYEE_RATE)
         epf_er = money(epf_base * EPF_EMPLOYER_RATE)
-        etf_er = money(epf_base * ETF_EMPLOYER_RATE)
+        etf_base=epf_base if p.etf_allowance is None else money((basic+D(p.etf_allowance))*(1-no_pay_days/D(p.no_pay_divisor))+epf_earn)
+        etf_er = money(etf_base * ETF_EMPLOYER_RATE)
     else:
         epf_base = epf_ee = epf_er = etf_er = Decimal("0.00")
         notes.append("Not registered for EPF/ETF")

@@ -168,6 +168,7 @@ class PayrollPolicy(models.Model):
     class Meta: ordering = ["-effective_date", "-id"]
 
 class SalarySheet(models.Model):
+    archived = models.BooleanField(default=False)
     """Versioned manual salary worksheet. Separate from statutory payroll runs."""
     company = models.ForeignKey('core.Company', on_delete=models.PROTECT)
     year = models.PositiveSmallIntegerField()
